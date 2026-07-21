@@ -5,9 +5,10 @@ Converts raw mouse input into chess moves via a two-click pattern:
 click a square with your piece on it (selects it, shows legal
 destinations), then click a destination square (attempts the move).
 
-This module owns UI-only state (which square is currently selected) --
-it never mutates GameState directly except by calling its public
-make_move() method, keeping GameState as the single source of truth.
+Accepts an optional on_move(move, san) callback, invoked right before
+a move is committed to GameState, so callers (e.g. GameController) can
+capture SAN notation while the pre-move board position is still
+available.
 """
 
 import chess
@@ -18,10 +19,11 @@ from presentation.board_renderer import BoardRenderer
 class InputHandler:
     """Tracks click-to-move selection state and applies moves to a GameState."""
 
-    def __init__(self, game_state):
+    def __init__(self, game_state, on_move=None):
         self._game_state = game_state
         self._selected_square = None
         self._last_move = None
+        self._on_move = on_move
 
     @property
     def selected_square(self):
@@ -31,11 +33,11 @@ class InputHandler:
     def last_move(self):
         return self._last_move
 
+    def reset_last_move(self):
+        """Clear the last-move highlight (used after undo)."""
+        self._last_move = None
+
     def legal_move_targets(self):
-        """
-        Return the list of destination squares the currently selected
-        piece can legally move to. Empty if nothing is selected.
-        """
         if self._selected_square is None:
             return []
 
@@ -46,11 +48,6 @@ class InputHandler:
         ]
 
     def handle_click(self, pixel_x, pixel_y):
-        """
-        Process a mouse click at the given pixel position (relative to the
-        board surface's top-left corner). Handles both selecting a piece
-        and attempting a move, depending on current state.
-        """
         clicked_square = BoardRenderer.pixel_to_square(pixel_x, pixel_y)
         if clicked_square is None:
             return
@@ -71,6 +68,11 @@ class InputHandler:
         move = self._find_legal_move(self._selected_square, clicked_square)
 
         if move is not None:
+            if self._on_move is not None:
+                # SAN must be computed before the move is pushed.
+                san = self._game_state.get_board().san(move)
+                self._on_move(move, san)
+
             self._game_state.make_move(move)
             self._last_move = move
             self._selected_square = None
@@ -84,11 +86,6 @@ class InputHandler:
             self._selected_square = None
 
     def _find_legal_move(self, from_square, to_square):
-        """
-        Find the legal move from from_square to to_square, if one exists.
-        Defaults to queen promotion when multiple candidate moves exist
-        (i.e. when the move is a pawn promotion).
-        """
         candidates = [
             move for move in self._game_state.get_legal_moves()
             if move.from_square == from_square and move.to_square == to_square
@@ -107,5 +104,4 @@ class InputHandler:
         return candidates[0]
 
     def deselect(self):
-        """Clear the current selection without making a move."""
         self._selected_square = None

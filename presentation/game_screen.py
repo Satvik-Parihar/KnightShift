@@ -1,19 +1,17 @@
 """
 presentation/game_screen.py
 
-Owns the Pygame window and the main game loop. For now (before the
-controller and input handler exist), it holds a GameState directly and
-simply renders the current position each frame. Once controller/game_controller.py
-and presentation/input_handler.py exist, this class will delegate move
-logic to them instead of touching GameState directly.
+Owns the Pygame window and the main game loop. Delegates all game
+logic to GameController; only handles input events, rendering, and
+timing.
 """
 
 import pygame
 
 from config import settings
-from domain.game_state import GameState
+from controller.game_controller import GameController
 from presentation.board_renderer import BoardRenderer
-from presentation.input_handler import InputHandler
+from presentation.ui_panel import UIPanel
 
 
 class GameScreen:
@@ -33,13 +31,12 @@ class GameScreen:
         )
 
         self._renderer = BoardRenderer()
-        self._game_state = GameState()
-        self._input_handler = InputHandler(self._game_state)
+        self._ui_panel = UIPanel()
+        self._controller = GameController()
 
         self._running = False
 
     def run(self):
-        """Start the main loop. Blocks until the window is closed."""
         self._running = True
         while self._running:
             self._handle_events()
@@ -52,23 +49,28 @@ class GameScreen:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
+
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pixel_x, pixel_y = event.pos
-                self._input_handler.handle_click(pixel_x, pixel_y)
+                self._controller.handle_click(pixel_x, pixel_y)
+
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_u:
+                    self._controller.undo()
+                elif event.key == pygame.K_r:
+                    self._controller.restart()
 
     def _draw_frame(self):
         self._window.fill(settings.COLOR_PANEL_BACKGROUND)
+
         self._renderer.draw_board(
             self._board_surface,
-            self._game_state,
-            selected_square=self._input_handler.selected_square,
-            legal_move_targets=self._input_handler.legal_move_targets(),
-            last_move=self._input_handler.last_move,
+            self._controller.game_state,
+            selected_square=self._controller.selected_square,
+            legal_move_targets=self._controller.legal_move_targets(),
+            last_move=self._controller.last_move,
         )
-        self._draw_side_panel_placeholder()
-        pygame.display.flip()
 
-    def _draw_side_panel_placeholder(self):
-        font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_PANEL_HEADING)
-        text = font.render("KnightShift", True, settings.COLOR_PANEL_HEADING)
-        self._window.blit(text, (settings.BOARD_PIXELS + 20, 20))
+        self._ui_panel.draw(self._window, self._controller)
+
+        pygame.display.flip()
