@@ -1,20 +1,9 @@
-"""
-controller/game_controller.py
-
-Mediates between GameState, InputHandler, and MoveHistory. This is the
-only place that owns and coordinates all three -- presentation code
-(GameScreen) should talk to GameController, not to GameState or
-InputHandler directly.
-"""
-
 from domain.game_state import GameState
 from domain.move_history import MoveHistory
 from presentation.input_handler import InputHandler
 
 
 class GameController:
-    """Owns the current game session: board state, input state, move history."""
-
     def __init__(self):
         self._game_state = None
         self._move_history = None
@@ -28,8 +17,6 @@ class GameController:
 
     def _on_move_played(self, move, san):
         self._move_history.add(san)
-
-    # --- Input delegation -------------------------------------------------
 
     def handle_click(self, pixel_x, pixel_y):
         self._input_handler.handle_click(pixel_x, pixel_y)
@@ -45,8 +32,6 @@ class GameController:
     def last_move(self):
         return self._input_handler.last_move
 
-    # --- Game state accessors ---------------------------------------------
-
     @property
     def game_state(self):
         return self._game_state
@@ -60,10 +45,7 @@ class GameController:
     def move_history_pairs(self):
         return self._move_history.formatted_pairs()
 
-    # --- Actions ------------------------------------------------------------
-
     def undo(self):
-        """Undo the last move played, if any."""
         undone = self._game_state.undo_move()
         if undone:
             self._move_history.pop()
@@ -72,5 +54,4 @@ class GameController:
         return undone
 
     def restart(self):
-        """Start a brand new game, discarding all current progress."""
         self._start_new_game()

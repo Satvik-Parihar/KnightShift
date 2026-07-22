@@ -1,13 +1,3 @@
-"""
-presentation/board_renderer.py
-
-Draws the current chess position onto a Pygame surface using Unicode
-chess glyphs (no image assets required). This module only reads from
-GameState — it never mutates it, and it knows nothing about input
-handling or the AI. Its only job is: given a position (and optional
-highlight info), produce pixels.
-"""
-
 import chess
 import pygame
 
@@ -24,8 +14,6 @@ FONT_CANDIDATES = ["segoeuisymbol", "dejavusans", "arialunicodems", "arial"]
 
 
 class BoardRenderer:
-    """Renders a GameState's board onto a Pygame surface."""
-
     def __init__(self):
         self._font = self._load_piece_font()
 

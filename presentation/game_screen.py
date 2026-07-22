@@ -1,11 +1,3 @@
-"""
-presentation/game_screen.py
-
-Owns the Pygame window and the main game loop. Delegates all game
-logic to GameController; only handles input events, rendering, and
-timing.
-"""
-
 import pygame
 
 from config import settings
@@ -15,8 +7,6 @@ from presentation.ui_panel import UIPanel
 
 
 class GameScreen:
-    """Creates the game window and runs the main render loop."""
-
     def __init__(self):
         pygame.init()
         pygame.display.set_caption("KnightShift")
@@ -42,23 +32,24 @@ class GameScreen:
             self._handle_events()
             self._draw_frame()
             self._clock.tick(settings.FPS)
-
         pygame.quit()
 
     def _handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
-
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                pixel_x, pixel_y = event.pos
-                self._controller.handle_click(pixel_x, pixel_y)
+                self._handle_click(event.pos)
 
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_u:
-                    self._controller.undo()
-                elif event.key == pygame.K_r:
-                    self._controller.restart()
+    def _handle_click(self, pos):
+        x, y = pos
+        if x < settings.BOARD_PIXELS:
+            self._controller.handle_click(x, y)
+            return
+        if self._ui_panel.undo_button_rect and self._ui_panel.undo_button_rect.collidepoint(pos):
+            self._controller.undo()
+        elif self._ui_panel.restart_button_rect and self._ui_panel.restart_button_rect.collidepoint(pos):
+            self._controller.restart()
 
     def _draw_frame(self):
         self._window.fill(settings.COLOR_PANEL_BACKGROUND)

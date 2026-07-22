@@ -1,24 +1,9 @@
-"""
-presentation/input_handler.py
-
-Converts raw mouse input into chess moves via a two-click pattern:
-click a square with your piece on it (selects it, shows legal
-destinations), then click a destination square (attempts the move).
-
-Accepts an optional on_move(move, san) callback, invoked right before
-a move is committed to GameState, so callers (e.g. GameController) can
-capture SAN notation while the pre-move board position is still
-available.
-"""
-
 import chess
 
 from presentation.board_renderer import BoardRenderer
 
 
 class InputHandler:
-    """Tracks click-to-move selection state and applies moves to a GameState."""
-
     def __init__(self, game_state, on_move=None):
         self._game_state = game_state
         self._selected_square = None
@@ -34,13 +19,11 @@ class InputHandler:
         return self._last_move
 
     def reset_last_move(self):
-        """Clear the last-move highlight (used after undo)."""
         self._last_move = None
 
     def legal_move_targets(self):
         if self._selected_square is None:
             return []
-
         return [
             move.to_square
             for move in self._game_state.get_legal_moves()
@@ -51,7 +34,6 @@ class InputHandler:
         clicked_square = BoardRenderer.pixel_to_square(pixel_x, pixel_y)
         if clicked_square is None:
             return
-
         if self._selected_square is None:
             self._try_select(clicked_square)
         else:
@@ -60,24 +42,19 @@ class InputHandler:
     def _try_select(self, square):
         board = self._game_state.get_board()
         piece = board.piece_at(square)
-
         if piece is not None and piece.color == self._game_state.turn():
             self._selected_square = square
 
     def _try_move_or_reselect(self, clicked_square):
         move = self._find_legal_move(self._selected_square, clicked_square)
-
         if move is not None:
             if self._on_move is not None:
-                # SAN must be computed before the move is pushed.
                 san = self._game_state.get_board().san(move)
                 self._on_move(move, san)
-
             self._game_state.make_move(move)
             self._last_move = move
             self._selected_square = None
             return
-
         board = self._game_state.get_board()
         piece = board.piece_at(clicked_square)
         if piece is not None and piece.color == self._game_state.turn():
@@ -90,17 +67,13 @@ class InputHandler:
             move for move in self._game_state.get_legal_moves()
             if move.from_square == from_square and move.to_square == to_square
         ]
-
         if not candidates:
             return None
-
         if len(candidates) == 1:
             return candidates[0]
-
         for move in candidates:
             if move.promotion == chess.QUEEN:
                 return move
-
         return candidates[0]
 
     def deselect(self):
