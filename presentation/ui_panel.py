@@ -10,6 +10,7 @@ class UIPanel:
         self._button_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_BUTTON)
         self.undo_button_rect = None
         self.restart_button_rect = None
+        self.mode_button_rect = None
 
     def draw(self, surface, controller):
         x_offset = settings.BOARD_PIXELS + 20
@@ -24,7 +25,7 @@ class UIPanel:
         surface.blit(status_surface, (x_offset, y))
         y += 40
 
-        y = self._draw_buttons(surface, x_offset, y)
+        y = self._draw_buttons(surface, controller, x_offset, y)
         y += 20
 
         self._draw_move_history(surface, controller, x_offset, y)
@@ -32,12 +33,14 @@ class UIPanel:
     def _status_text(self, controller):
         if controller.is_game_over():
             return controller.get_result()
+        if controller.is_ai_thinking:
+            return "AI is thinking..."
         board = controller.game_state.get_board()
         turn_name = "White" if board.turn else "Black"
         check_suffix = " (in check)" if controller.game_state.is_check() else ""
         return f"{turn_name} to move{check_suffix}"
 
-    def _draw_buttons(self, surface, x_offset, y):
+    def _draw_buttons(self, surface, controller, x_offset, y):
         button_width = 110
         button_height = 36
         spacing = 10
@@ -47,6 +50,13 @@ class UIPanel:
 
         self._draw_button(surface, self.undo_button_rect, "Undo")
         self._draw_button(surface, self.restart_button_rect, "New Game")
+
+        y += button_height + spacing
+
+        mode_width = button_width * 2 + spacing
+        self.mode_button_rect = pygame.Rect(x_offset, y, mode_width, button_height)
+        mode_label = "Mode: 1P (vs AI)" if controller.vs_ai else "Mode: 2P (vs Human)"
+        self._draw_button(surface, self.mode_button_rect, mode_label)
 
         return y + button_height
 

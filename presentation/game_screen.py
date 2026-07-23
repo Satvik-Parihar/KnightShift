@@ -30,6 +30,7 @@ class GameScreen:
         self._running = True
         while self._running:
             self._handle_events()
+            self._controller.update()
             self._draw_frame()
             self._clock.tick(settings.FPS)
         pygame.quit()
@@ -45,6 +46,9 @@ class GameScreen:
         x, y = pos
         if x < settings.BOARD_PIXELS:
             self._controller.handle_click(x, y)
+            return
+        if self._ui_panel.mode_button_rect and self._ui_panel.mode_button_rect.collidepoint(pos):
+            self._controller.toggle_mode()
             return
         if self._ui_panel.undo_button_rect and self._ui_panel.undo_button_rect.collidepoint(pos):
             self._controller.undo()

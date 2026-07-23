@@ -21,6 +21,9 @@ class InputHandler:
     def reset_last_move(self):
         self._last_move = None
 
+    def set_last_move(self, move):
+        self._last_move = move
+
     def legal_move_targets(self):
         if self._selected_square is None:
             return []
@@ -48,12 +51,12 @@ class InputHandler:
     def _try_move_or_reselect(self, clicked_square):
         move = self._find_legal_move(self._selected_square, clicked_square)
         if move is not None:
-            if self._on_move is not None:
-                san = self._game_state.get_board().san(move)
-                self._on_move(move, san)
+            san = self._game_state.get_board().san(move)
             self._game_state.make_move(move)
             self._last_move = move
             self._selected_square = None
+            if self._on_move is not None:
+                self._on_move(move, san)
             return
         board = self._game_state.get_board()
         piece = board.piece_at(clicked_square)

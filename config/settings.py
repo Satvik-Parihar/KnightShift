@@ -44,6 +44,7 @@ DIFFICULTY_PRESETS = {
 }
 
 DEFAULT_DIFFICULTY = "Medium"
+AI_THINK_DELAY_MS = 600
 
 AI_PERSONALITIES = ["Coach", "Competitive", "Funny"]
 
