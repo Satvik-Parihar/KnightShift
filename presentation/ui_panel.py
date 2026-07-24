@@ -8,11 +8,13 @@ class UIPanel:
         self._heading_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_PANEL_HEADING)
         self._text_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_PANEL_TEXT)
         self._button_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_BUTTON)
+        self._commentary_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_COMMENTARY)
         self.undo_button_rect = None
         self.restart_button_rect = None
         self.vs_ai_button_rect = None
         self.vs_human_button_rect = None
         self.difficulty_button_rect = None
+        self.personality_button_rect = None
 
     def draw(self, surface, controller):
         x_offset = settings.BOARD_PIXELS + 20
@@ -28,7 +30,10 @@ class UIPanel:
         y += 40
 
         y = self._draw_buttons(surface, controller, x_offset, y)
-        y += 20
+        y += 15
+
+        y = self._draw_commentary(surface, controller, x_offset, y)
+        y += 15
 
         self._draw_move_history(surface, controller, x_offset, y)
 
@@ -68,9 +73,14 @@ class UIPanel:
         if controller.vs_ai:
             self.difficulty_button_rect = pygame.Rect(x_offset, y, row_width, button_height)
             self._draw_button(surface, self.difficulty_button_rect, f"Difficulty: {controller.difficulty}")
+            y += button_height + spacing
+
+            self.personality_button_rect = pygame.Rect(x_offset, y, row_width, button_height)
+            self._draw_button(surface, self.personality_button_rect, f"Personality: {controller.personality}")
             y += button_height
         else:
             self.difficulty_button_rect = None
+            self.personality_button_rect = None
 
         return y
 
@@ -88,6 +98,36 @@ class UIPanel:
         text_surface = self._button_font.render(label, True, settings.COLOR_BUTTON_TEXT)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)
+
+    def _draw_commentary(self, surface, controller, x_offset, y):
+        if not controller.vs_ai or not controller.latest_comment:
+            return y
+
+        max_width = settings.SIDE_PANEL_WIDTH - 40
+        lines = self._wrap_text(controller.latest_comment, self._commentary_font, max_width)
+
+        for line in lines:
+            line_surface = self._commentary_font.render(line, True, settings.COLOR_PANEL_TEXT)
+            surface.blit(line_surface, (x_offset, y))
+            y += settings.FONT_SIZE_COMMENTARY + 6
+
+        return y
+
+    def _wrap_text(self, text, font, max_width):
+        words = text.split(" ")
+        lines = []
+        current = ""
+        for word in words:
+            candidate = (current + " " + word).strip()
+            if font.size(candidate)[0] <= max_width:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        return lines
 
     def _draw_move_history(self, surface, controller, x_offset, y):
         heading = self._text_font.render("Move History:", True, settings.COLOR_PANEL_HEADING)

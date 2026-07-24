@@ -51,12 +51,18 @@ class InputHandler:
     def _try_move_or_reselect(self, clicked_square):
         move = self._find_legal_move(self._selected_square, clicked_square)
         if move is not None:
-            san = self._game_state.get_board().san(move)
+            board = self._game_state.get_board()
+            captured_piece = board.piece_at(move.to_square)
+            captured_piece_type = captured_piece.piece_type if captured_piece is not None else None
+            if captured_piece_type is None and board.is_en_passant(move):
+                captured_piece_type = chess.PAWN
+
+            san = board.san(move)
             self._game_state.make_move(move)
             self._last_move = move
             self._selected_square = None
             if self._on_move is not None:
-                self._on_move(move, san)
+                self._on_move(move, san, captured_piece_type)
             return
         board = self._game_state.get_board()
         piece = board.piece_at(clicked_square)

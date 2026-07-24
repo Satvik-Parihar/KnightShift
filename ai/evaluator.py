@@ -1,3 +1,5 @@
+import random
+
 import chess
 
 PIECE_VALUES = {
@@ -11,8 +13,20 @@ PIECE_VALUES = {
 
 CENTER_SQUARES = [chess.D4, chess.D5, chess.E4, chess.E5]
 
+DEFAULT_WEIGHTS = {
+    "mobility": 0.1,
+    "center": 5,
+    "king_safety": 10,
+    "pawn_structure": 10,
+    "aggression": 0,
+    "randomness": 0,
+}
 
-def evaluate(board: chess.Board) -> float:
+
+def evaluate(board: chess.Board, weights: dict = None) -> float:
+    if weights is None:
+        weights = DEFAULT_WEIGHTS
+
     if board.is_checkmate():
         return -99999 if board.turn == chess.WHITE else 99999
     if board.is_stalemate() or board.is_insufficient_material():
@@ -20,10 +34,12 @@ def evaluate(board: chess.Board) -> float:
 
     score = 0
     score += _material_score(board)
-    score += _mobility_score(board) * 0.1
-    score += _center_control_score(board) * 5
-    score += _king_safety_score(board) * 10
-    score += _pawn_structure_score(board) * 10
+    score += _mobility_score(board) * weights["mobility"]
+    score += _center_control_score(board) * weights["center"]
+    score += _king_safety_score(board) * weights["king_safety"]
+    score += _pawn_structure_score(board) * weights["pawn_structure"]
+    score += _threat_score(board) * weights["aggression"]
+    score += _personality_jitter(board, weights["randomness"])
     return score
 
 
@@ -90,3 +106,23 @@ def _pawn_score_for(board, color):
             if not has_left and not has_right:
                 penalty += count
     return -penalty
+
+
+def _threat_score(board):
+    score = 0.0
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece is None:
+            continue
+        attackers = board.attackers(not piece.color, square)
+        if attackers:
+            value = PIECE_VALUES[piece.piece_type] * 0.01
+            score += -value if piece.color == chess.WHITE else value
+    return score
+
+
+def _personality_jitter(board, amount):
+    if not amount:
+        return 0.0
+    rng = random.Random(hash(board.board_fen()))
+    return rng.uniform(-amount, amount)

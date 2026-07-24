@@ -5,17 +5,35 @@ from domain.game_state import GameState
 from domain.move_history import MoveHistory
 from presentation.input_handler import InputHandler
 from ai.minimax import find_best_move
+from ai.evaluator import evaluate
 from ai.difficulty import get_depth
-from config.settings import DEFAULT_DIFFICULTY, AI_THINK_DELAY_MS, DIFFICULTY_PRESETS
+from ai.personality import get_weights
+from ai.commentary.events import Event
+from ai.commentary.commentary_engine import generate_comment
+from config.settings import (
+    DEFAULT_DIFFICULTY,
+    AI_THINK_DELAY_MS,
+    DIFFICULTY_PRESETS,
+    AI_PERSONALITIES,
+    DEFAULT_PERSONALITY,
+)
+
+BLUNDER_THRESHOLD = -150
+GOOD_MOVE_THRESHOLD = 100
+BRILLIANT_THRESHOLD = 250
 
 
 class GameController:
-    def __init__(self, vs_ai=True, ai_color=chess.BLACK, difficulty=DEFAULT_DIFFICULTY):
+    def __init__(self, vs_ai=True, ai_color=chess.BLACK,
+                 difficulty=DEFAULT_DIFFICULTY, personality=DEFAULT_PERSONALITY):
         self._vs_ai = vs_ai
         self._ai_color = ai_color
         self._difficulty = difficulty
+        self._personality = personality
         self._ai_thinking = False
         self._ai_think_deadline = None
+        self._last_captured_piece_type = None
+        self._latest_comment = None
         self._game_state = None
         self._move_history = None
         self._input_handler = None
@@ -27,9 +45,12 @@ class GameController:
         self._input_handler = InputHandler(self._game_state, on_move=self._on_move_played)
         self._ai_thinking = False
         self._ai_think_deadline = None
+        self._last_captured_piece_type = None
+        self._latest_comment = None
 
-    def _on_move_played(self, move, san):
+    def _on_move_played(self, move, san, captured_piece_type):
         self._move_history.add(san)
+        self._last_captured_piece_type = captured_piece_type
         self._maybe_start_ai_thinking()
 
     def _maybe_start_ai_thinking(self):
@@ -49,15 +70,69 @@ class GameController:
 
     def _play_ai_move_now(self):
         depth = get_depth(self._difficulty)
-        ai_move = find_best_move(self._game_state, depth)
+        weights = get_weights(self._personality)
+        eval_before = evaluate(self._game_state.get_board())
+
+        ai_move = find_best_move(self._game_state, depth, weights=weights)
         self._ai_thinking = False
         self._ai_think_deadline = None
         if ai_move is None:
             return
-        san = self._game_state.get_board().san(ai_move)
+
+        board = self._game_state.get_board()
+        captured_piece = board.piece_at(ai_move.to_square)
+        captured_piece_type = captured_piece.piece_type if captured_piece is not None else None
+        if captured_piece_type is None and board.is_en_passant(ai_move):
+            captured_piece_type = chess.PAWN
+
+        san = board.san(ai_move)
         self._game_state.make_move(ai_move)
         self._move_history.add(san)
         self._input_handler.set_last_move(ai_move)
+        self._last_captured_piece_type = captured_piece_type
+
+        self._process_move_event(eval_before, self._ai_color)
+
+    def _process_move_event(self, eval_before, mover_color):
+        board = self._game_state.get_board()
+        eval_after = evaluate(board)
+        swing = (eval_after - eval_before) if mover_color == chess.WHITE else (eval_before - eval_after)
+        event = self._classify_event(board, swing)
+        self._latest_comment = generate_comment(self._personality, event) if event else None
+
+    def _classify_event(self, board, swing):
+        if board.is_checkmate():
+            return Event.CHECKMATE
+        if board.is_stalemate():
+            return Event.STALEMATE
+
+        move = self._input_handler.last_move
+        if move is not None and move.promotion is not None:
+            return Event.PROMOTION
+
+        if self._last_captured_piece_type == chess.QUEEN:
+            return Event.CAPTURE_QUEEN
+        if self._last_captured_piece_type == chess.ROOK:
+            return Event.CAPTURE_ROOK
+
+        if board.is_check():
+            return Event.CHECK
+
+        if swing >= BRILLIANT_THRESHOLD:
+            return Event.BRILLIANT_MOVE
+        if swing <= BLUNDER_THRESHOLD:
+            return Event.BLUNDER
+
+        if self._last_captured_piece_type is not None:
+            return Event.CAPTURE
+
+        if swing >= GOOD_MOVE_THRESHOLD:
+            return Event.GOOD_MOVE
+
+        if len(self._move_history.get_entries()) <= 2:
+            return Event.OPENING
+
+        return None
 
     @property
     def is_ai_thinking(self):
@@ -77,6 +152,19 @@ class GameController:
         next_index = (current_index + 1) % len(names)
         self._difficulty = names[next_index]
 
+    @property
+    def personality(self):
+        return self._personality
+
+    def cycle_personality(self):
+        current_index = AI_PERSONALITIES.index(self._personality)
+        next_index = (current_index + 1) % len(AI_PERSONALITIES)
+        self._personality = AI_PERSONALITIES[next_index]
+
+    @property
+    def latest_comment(self):
+        return self._latest_comment
+
     def set_mode(self, vs_ai):
         if self._vs_ai == vs_ai:
             return
@@ -84,7 +172,17 @@ class GameController:
         self._start_new_game()
 
     def handle_click(self, pixel_x, pixel_y):
+        if self._game_state.is_game_over():
+            return
+
+        moves_before = len(self._move_history.get_entries())
+        eval_before = evaluate(self._game_state.get_board())
+
         self._input_handler.handle_click(pixel_x, pixel_y)
+
+        if len(self._move_history.get_entries()) > moves_before:
+            mover_color = not self._game_state.turn()
+            self._process_move_event(eval_before, mover_color)
 
     @property
     def selected_square(self):
@@ -123,6 +221,8 @@ class GameController:
 
         self._ai_thinking = False
         self._ai_think_deadline = None
+        self._last_captured_piece_type = None
+        self._latest_comment = None
         self._input_handler.deselect()
         self._input_handler.reset_last_move()
         return True

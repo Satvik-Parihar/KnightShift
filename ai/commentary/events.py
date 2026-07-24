@@ -1,0 +1,12 @@
+class Event:
+    OPENING = "opening"
+    GOOD_MOVE = "good_move"
+    BRILLIANT_MOVE = "brilliant_move"
+    BLUNDER = "blunder"
+    CAPTURE = "capture"
+    CAPTURE_QUEEN = "capture_queen"
+    CAPTURE_ROOK = "capture_rook"
+    CHECK = "check"
+    CHECKMATE = "checkmate"
+    STALEMATE = "stalemate"
+    PROMOTION = "promotion"
