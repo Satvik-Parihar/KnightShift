@@ -6,7 +6,7 @@ from domain.move_history import MoveHistory
 from presentation.input_handler import InputHandler
 from ai.minimax import find_best_move
 from ai.difficulty import get_depth
-from config.settings import DEFAULT_DIFFICULTY, AI_THINK_DELAY_MS
+from config.settings import DEFAULT_DIFFICULTY, AI_THINK_DELAY_MS, DIFFICULTY_PRESETS
 
 
 class GameController:
@@ -67,6 +67,16 @@ class GameController:
     def vs_ai(self):
         return self._vs_ai
 
+    @property
+    def difficulty(self):
+        return self._difficulty
+
+    def cycle_difficulty(self):
+        names = list(DIFFICULTY_PRESETS.keys())
+        current_index = names.index(self._difficulty)
+        next_index = (current_index + 1) % len(names)
+        self._difficulty = names[next_index]
+
     def toggle_mode(self):
         self._vs_ai = not self._vs_ai
         self._start_new_game()
@@ -100,11 +110,20 @@ class GameController:
 
     def undo(self):
         undone = self._game_state.undo_move()
-        if undone:
+        if not undone:
+            return False
+
+        self._move_history.pop()
+
+        if self._vs_ai and self._game_state.turn() == self._ai_color and self._game_state.get_board().move_stack:
+            self._game_state.undo_move()
             self._move_history.pop()
-            self._input_handler.deselect()
-            self._input_handler.reset_last_move()
-        return undone
+
+        self._ai_thinking = False
+        self._ai_think_deadline = None
+        self._input_handler.deselect()
+        self._input_handler.reset_last_move()
+        return True
 
     def restart(self):
         self._start_new_game()

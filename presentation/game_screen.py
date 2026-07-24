@@ -50,6 +50,9 @@ class GameScreen:
         if self._ui_panel.mode_button_rect and self._ui_panel.mode_button_rect.collidepoint(pos):
             self._controller.toggle_mode()
             return
+        if self._ui_panel.difficulty_button_rect and self._ui_panel.difficulty_button_rect.collidepoint(pos):
+            self._controller.cycle_difficulty()
+            return
         if self._ui_panel.undo_button_rect and self._ui_panel.undo_button_rect.collidepoint(pos):
             self._controller.undo()
         elif self._ui_panel.restart_button_rect and self._ui_panel.restart_button_rect.collidepoint(pos):

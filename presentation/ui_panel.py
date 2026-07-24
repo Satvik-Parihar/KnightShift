@@ -11,6 +11,7 @@ class UIPanel:
         self.undo_button_rect = None
         self.restart_button_rect = None
         self.mode_button_rect = None
+        self.difficulty_button_rect = None
 
     def draw(self, surface, controller):
         x_offset = settings.BOARD_PIXELS + 20
@@ -58,7 +59,16 @@ class UIPanel:
         mode_label = "Mode: 1P (vs AI)" if controller.vs_ai else "Mode: 2P (vs Human)"
         self._draw_button(surface, self.mode_button_rect, mode_label)
 
-        return y + button_height
+        y += button_height + spacing
+
+        if controller.vs_ai:
+            self.difficulty_button_rect = pygame.Rect(x_offset, y, mode_width, button_height)
+            self._draw_button(surface, self.difficulty_button_rect, f"Difficulty: {controller.difficulty}")
+            y += button_height
+        else:
+            self.difficulty_button_rect = None
+
+        return y
 
     def _draw_button(self, surface, rect, label):
         mouse_pos = pygame.mouse.get_pos()
