@@ -10,7 +10,8 @@ class UIPanel:
         self._button_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_BUTTON)
         self.undo_button_rect = None
         self.restart_button_rect = None
-        self.mode_button_rect = None
+        self.vs_ai_button_rect = None
+        self.vs_human_button_rect = None
         self.difficulty_button_rect = None
 
     def draw(self, surface, controller):
@@ -54,15 +55,18 @@ class UIPanel:
 
         y += button_height + spacing
 
-        mode_width = button_width * 2 + spacing
-        self.mode_button_rect = pygame.Rect(x_offset, y, mode_width, button_height)
-        mode_label = "Mode: 1P (vs AI)" if controller.vs_ai else "Mode: 2P (vs Human)"
-        self._draw_button(surface, self.mode_button_rect, mode_label)
+        row_width = button_width * 2 + spacing
+
+        self.vs_ai_button_rect = pygame.Rect(x_offset, y, button_width, button_height)
+        self.vs_human_button_rect = pygame.Rect(x_offset + button_width + spacing, y, button_width, button_height)
+
+        self._draw_button(surface, self.vs_ai_button_rect, "vs AI", active=controller.vs_ai)
+        self._draw_button(surface, self.vs_human_button_rect, "vs Human", active=not controller.vs_ai)
 
         y += button_height + spacing
 
         if controller.vs_ai:
-            self.difficulty_button_rect = pygame.Rect(x_offset, y, mode_width, button_height)
+            self.difficulty_button_rect = pygame.Rect(x_offset, y, row_width, button_height)
             self._draw_button(surface, self.difficulty_button_rect, f"Difficulty: {controller.difficulty}")
             y += button_height
         else:
@@ -70,10 +74,17 @@ class UIPanel:
 
         return y
 
-    def _draw_button(self, surface, rect, label):
+    def _draw_button(self, surface, rect, label, active=False):
         mouse_pos = pygame.mouse.get_pos()
-        color = settings.COLOR_BUTTON_HOVER if rect.collidepoint(mouse_pos) else settings.COLOR_BUTTON_BACKGROUND
+        if active:
+            color = settings.COLOR_BUTTON_ACTIVE
+        elif rect.collidepoint(mouse_pos):
+            color = settings.COLOR_BUTTON_HOVER
+        else:
+            color = settings.COLOR_BUTTON_BACKGROUND
         pygame.draw.rect(surface, color, rect, border_radius=6)
+        if active:
+            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
         text_surface = self._button_font.render(label, True, settings.COLOR_BUTTON_TEXT)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)

@@ -77,8 +77,10 @@ class GameController:
         next_index = (current_index + 1) % len(names)
         self._difficulty = names[next_index]
 
-    def toggle_mode(self):
-        self._vs_ai = not self._vs_ai
+    def set_mode(self, vs_ai):
+        if self._vs_ai == vs_ai:
+            return
+        self._vs_ai = vs_ai
         self._start_new_game()
 
     def handle_click(self, pixel_x, pixel_y):

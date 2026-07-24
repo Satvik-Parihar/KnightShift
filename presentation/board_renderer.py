@@ -71,7 +71,7 @@ class BoardRenderer:
         for square in (last_move.from_square, last_move.to_square):
             x, y = self.square_to_pixel(square)
             highlight = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
-            highlight.fill((*settings.COLOR_HIGHLIGHT_LAST_MOVE, 100))
+            highlight.fill((*settings.COLOR_HIGHLIGHT_LAST_MOVE, 160))
             surface.blit(highlight, (x, y))
 
     def _draw_check_highlight(self, surface, game_state):
@@ -83,7 +83,7 @@ class BoardRenderer:
             return
         x, y = self.square_to_pixel(king_square)
         highlight = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
-        highlight.fill((*settings.COLOR_HIGHLIGHT_CHECK, 120))
+        highlight.fill((*settings.COLOR_HIGHLIGHT_CHECK, 160))
         surface.blit(highlight, (x, y))
 
     def _draw_selected_highlight(self, surface, selected_square):
@@ -91,18 +91,18 @@ class BoardRenderer:
             return
         x, y = self.square_to_pixel(selected_square)
         highlight = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
-        highlight.fill((*settings.COLOR_HIGHLIGHT_SELECTED, 140))
+        highlight.fill((*settings.COLOR_HIGHLIGHT_SELECTED, 190))
         surface.blit(highlight, (x, y))
 
     def _draw_legal_move_markers(self, surface, legal_move_targets):
-        radius = settings.SQUARE_SIZE // 6
+        radius = settings.SQUARE_SIZE // 4
+        outline_radius = radius + 3
         for square in legal_move_targets:
             x, y = self.square_to_pixel(square)
             marker = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
-            pygame.draw.circle(
-                marker, (*settings.COLOR_HIGHLIGHT_LEGAL_MOVE, 160),
-                (settings.SQUARE_SIZE // 2, settings.SQUARE_SIZE // 2), radius
-            )
+            center = (settings.SQUARE_SIZE // 2, settings.SQUARE_SIZE // 2)
+            pygame.draw.circle(marker, (20, 20, 20, 90), center, outline_radius)
+            pygame.draw.circle(marker, (*settings.COLOR_HIGHLIGHT_LEGAL_MOVE, 230), center, radius)
             surface.blit(marker, (x, y))
 
     def _draw_pieces(self, surface, game_state):

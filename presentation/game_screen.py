@@ -47,8 +47,11 @@ class GameScreen:
         if x < settings.BOARD_PIXELS:
             self._controller.handle_click(x, y)
             return
-        if self._ui_panel.mode_button_rect and self._ui_panel.mode_button_rect.collidepoint(pos):
-            self._controller.toggle_mode()
+        if self._ui_panel.vs_ai_button_rect and self._ui_panel.vs_ai_button_rect.collidepoint(pos):
+            self._controller.set_mode(vs_ai=True)
+            return
+        if self._ui_panel.vs_human_button_rect and self._ui_panel.vs_human_button_rect.collidepoint(pos):
+            self._controller.set_mode(vs_ai=False)
             return
         if self._ui_panel.difficulty_button_rect and self._ui_panel.difficulty_button_rect.collidepoint(pos):
             self._controller.cycle_difficulty()
