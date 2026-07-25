@@ -100,7 +100,7 @@ class UIPanel:
         surface.blit(text_surface, text_rect)
 
     def _draw_commentary(self, surface, controller, x_offset, y):
-        if not controller.vs_ai or not controller.latest_comment:
+        if not controller.latest_comment:
             return y
 
         max_width = settings.SIDE_PANEL_WIDTH - 40
