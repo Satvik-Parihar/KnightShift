@@ -13,6 +13,7 @@ from ai.commentary.commentary_engine import generate_comment
 from config.settings import (
     DEFAULT_DIFFICULTY,
     AI_THINK_DELAY_MS,
+    AI_TIME_BUDGET_MS,
     DIFFICULTY_PRESETS,
     AI_PERSONALITIES,
     DEFAULT_PERSONALITY,
@@ -73,7 +74,7 @@ class GameController:
         weights = get_weights(self._personality)
         eval_before = evaluate(self._game_state.get_board())
 
-        ai_move = find_best_move(self._game_state, depth, weights=weights)
+        ai_move = find_best_move(self._game_state, depth, weights=weights, time_budget_ms=AI_TIME_BUDGET_MS)
         self._ai_thinking = False
         self._ai_think_deadline = None
         if ai_move is None:
