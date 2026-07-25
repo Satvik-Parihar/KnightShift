@@ -1,30 +1,29 @@
+import os
+
 import chess
 import pygame
 
 from config import settings
 
-PIECE_GLYPHS = {
-    "P": "\u2659", "N": "\u2658", "B": "\u2657",
-    "R": "\u2656", "Q": "\u2655", "K": "\u2654",
-    "p": "\u265F", "n": "\u265E", "b": "\u265D",
-    "r": "\u265C", "q": "\u265B", "k": "\u265A",
+PIECE_FILE_NAMES = {
+    "P": "wP", "N": "wN", "B": "wB", "R": "wR", "Q": "wQ", "K": "wK",
+    "p": "bP", "n": "bN", "b": "bB", "r": "bR", "q": "bQ", "k": "bK",
 }
-
-FONT_CANDIDATES = ["segoeuisymbol", "dejavusans", "arialunicodems", "arial"]
 
 
 class BoardRenderer:
     def __init__(self):
-        self._font = self._load_piece_font()
+        self._piece_images = self._load_piece_images()
 
-    def _load_piece_font(self):
-        size = int(settings.SQUARE_SIZE * 0.75)
-        for name in FONT_CANDIDATES:
-            font = pygame.font.SysFont(name, size)
-            test_surface = font.render(PIECE_GLYPHS["K"], True, (0, 0, 0))
-            if test_surface.get_width() > 0:
-                return font
-        return pygame.font.Font(None, size)
+    def _load_piece_images(self):
+        images = {}
+        target_size = int(settings.SQUARE_SIZE * 0.88)
+        for symbol, file_name in PIECE_FILE_NAMES.items():
+            path = os.path.join(settings.PIECES_ASSET_PATH, f"{file_name}.png")
+            if os.path.exists(path):
+                raw = pygame.image.load(path).convert_alpha()
+                images[symbol] = pygame.transform.smoothscale(raw, (target_size, target_size))
+        return images
 
     @staticmethod
     def square_to_pixel(square):
@@ -55,6 +54,7 @@ class BoardRenderer:
         self._draw_selected_highlight(surface, selected_square)
         self._draw_legal_move_markers(surface, legal_move_targets)
         self._draw_pieces(surface, game_state)
+        self._draw_board_border(surface)
 
     def _draw_squares(self, surface):
         for rank_index in range(8):
@@ -64,6 +64,12 @@ class BoardRenderer:
                 is_light = (file_index + rank_index) % 2 == 1
                 color = settings.COLOR_LIGHT_SQUARE if is_light else settings.COLOR_DARK_SQUARE
                 pygame.draw.rect(surface, color, (x, y, settings.SQUARE_SIZE, settings.SQUARE_SIZE))
+
+    def _draw_board_border(self, surface):
+        pygame.draw.rect(
+            surface, settings.COLOR_BOARD_BORDER,
+            (0, 0, settings.BOARD_PIXELS, settings.BOARD_PIXELS), width=4
+        )
 
     def _draw_last_move_highlight(self, surface, last_move):
         if last_move is None:
@@ -111,14 +117,11 @@ class BoardRenderer:
             piece = board.piece_at(square)
             if piece is None:
                 continue
-            glyph = PIECE_GLYPHS[piece.symbol()]
-            text_color = (
-                settings.COLOR_WHITE_PIECE_TEXT if piece.color == chess.WHITE
-                else settings.COLOR_BLACK_PIECE_TEXT
-            )
-            rendered = self._font.render(glyph, True, text_color)
+            symbol = piece.symbol()
+            image = self._piece_images.get(symbol)
             x, y = self.square_to_pixel(square)
-            rect = rendered.get_rect(
-                center=(x + settings.SQUARE_SIZE // 2, y + settings.SQUARE_SIZE // 2)
-            )
-            surface.blit(rendered, rect)
+            if image is not None:
+                rect = image.get_rect(
+                    center=(x + settings.SQUARE_SIZE // 2, y + settings.SQUARE_SIZE // 2)
+                )
+                surface.blit(image, rect)
