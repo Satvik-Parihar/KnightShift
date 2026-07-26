@@ -56,8 +56,14 @@ class GameScreen:
         if self._ui_panel.difficulty_button_rect and self._ui_panel.difficulty_button_rect.collidepoint(pos):
             self._controller.cycle_difficulty()
             return
-        if self._ui_panel.player_color_button_rect and self._ui_panel.player_color_button_rect.collidepoint(pos):
-            self._controller.cycle_player_color()
+        if self._ui_panel.play_white_button_rect and self._ui_panel.play_white_button_rect.collidepoint(pos):
+            self._controller.set_player_color("White")
+            return
+        if self._ui_panel.play_black_button_rect and self._ui_panel.play_black_button_rect.collidepoint(pos):
+            self._controller.set_player_color("Black")
+            return
+        if self._ui_panel.play_random_button_rect and self._ui_panel.play_random_button_rect.collidepoint(pos):
+            self._controller.set_player_color("Random")
             return
         if self._ui_panel.personality_button_rect and self._ui_panel.personality_button_rect.collidepoint(pos):
             self._controller.cycle_personality()

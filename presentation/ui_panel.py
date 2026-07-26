@@ -1,3 +1,5 @@
+import os
+
 import pygame
 
 from config import settings
@@ -17,6 +19,9 @@ class UIPanel:
         self._button_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_BUTTON)
         self._commentary_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_COMMENTARY)
         self._status_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_PANEL_TEXT, bold=True)
+        self._section_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_SECTION_LABEL, bold=True)
+
+        self._king_icons = self._load_king_icons()
 
         self.undo_button_rect = None
         self.restart_button_rect = None
@@ -24,7 +29,19 @@ class UIPanel:
         self.vs_human_button_rect = None
         self.difficulty_button_rect = None
         self.personality_button_rect = None
-        self.player_color_button_rect = None
+        self.play_white_button_rect = None
+        self.play_black_button_rect = None
+        self.play_random_button_rect = None
+
+    def _load_king_icons(self):
+        icons = {}
+        icon_size = 26
+        for key, filename in (("white", "wK.png"), ("black", "bK.png")):
+            path = os.path.join(settings.PIECES_ASSET_PATH, filename)
+            if os.path.exists(path):
+                raw = pygame.image.load(path).convert_alpha()
+                icons[key] = pygame.transform.smoothscale(raw, (icon_size, icon_size))
+        return icons
 
     def draw(self, surface, controller):
         x_offset = settings.BOARD_PIXELS + 20
@@ -115,53 +132,78 @@ class UIPanel:
         check_suffix = " - in check" if controller.game_state.is_check() else ""
         return f"{turn_name} to move{check_suffix}"
 
+    def _section_label(self, surface, text, x, y):
+        label = self._section_font.render(text.upper(), True, settings.COLOR_SECTION_LABEL)
+        surface.blit(label, (x, y))
+        return y + label.get_height() + 4
+
     def _draw_buttons_card(self, surface, controller, x_offset, panel_width, y):
-        button_width = (panel_width - 10) // 2
-        button_height = 36
-        spacing = 10
-
-        card_top = y
+        button_height = 34
+        spacing = 8
         card_padding = 12
+        section_gap = 6
+        label_block = settings.FONT_SIZE_SECTION_LABEL + 4
 
-        rows = 2 if not controller.vs_ai else 5
-        card_height = card_padding * 2 + rows * button_height + (rows - 1) * spacing
+        button_width = (panel_width - card_padding * 2 - spacing) // 2
+        row_width = panel_width - card_padding * 2
 
-        card_rect = pygame.Rect(x_offset, card_top, panel_width, card_height)
+        section_count = 2 if not controller.vs_ai else 5
+        card_height = card_padding * 2 + section_count * (label_block + button_height) \
+            + (section_count - 1) * section_gap
+
+        card_rect = pygame.Rect(x_offset, y, panel_width, card_height)
         pygame.draw.rect(surface, settings.COLOR_CARD_BACKGROUND, card_rect, border_radius=10)
         pygame.draw.rect(surface, settings.COLOR_CARD_BORDER, card_rect, width=1, border_radius=10)
 
         bx = x_offset + card_padding
-        by = card_top + card_padding
+        by = y + card_padding
 
+        by = self._section_label(surface, "Game", bx, by)
         self.undo_button_rect = pygame.Rect(bx, by, button_width, button_height)
         self.restart_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
         self._draw_button(surface, self.undo_button_rect, "Undo")
         self._draw_button(surface, self.restart_button_rect, "New Game")
-        by += button_height + spacing
+        by += button_height + section_gap
 
+        by = self._section_label(surface, "Mode", bx, by)
         self.vs_ai_button_rect = pygame.Rect(bx, by, button_width, button_height)
         self.vs_human_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
         self._draw_button(surface, self.vs_ai_button_rect, "vs AI", active=controller.vs_ai)
         self._draw_button(surface, self.vs_human_button_rect, "vs Human", active=not controller.vs_ai)
-        by += button_height + spacing
-
-        row_width = button_width * 2 + spacing
+        by += button_height + section_gap
 
         if controller.vs_ai:
-            self.player_color_button_rect = pygame.Rect(bx, by, row_width, button_height)
-            self._draw_button(surface, self.player_color_button_rect, f"Play as: {controller.player_color_choice}")
-            by += button_height + spacing
+            by = self._section_label(surface, "Play as", bx, by)
+            triple_width = (row_width - spacing * 2) // 3
 
+            self.play_white_button_rect = pygame.Rect(bx, by, triple_width, button_height)
+            self.play_black_button_rect = pygame.Rect(bx + triple_width + spacing, by, triple_width, button_height)
+            self.play_random_button_rect = pygame.Rect(
+                bx + (triple_width + spacing) * 2, by, triple_width, button_height
+            )
+
+            self._draw_color_button(surface, self.play_white_button_rect, "white",
+                                     active=controller.player_color_choice == "White")
+            self._draw_color_button(surface, self.play_black_button_rect, "black",
+                                     active=controller.player_color_choice == "Black")
+            self._draw_random_button(surface, self.play_random_button_rect,
+                                      active=controller.player_color_choice == "Random")
+            by += button_height + section_gap
+
+            by = self._section_label(surface, "Difficulty", bx, by)
             self.difficulty_button_rect = pygame.Rect(bx, by, row_width, button_height)
-            self._draw_button(surface, self.difficulty_button_rect, f"Difficulty: {controller.difficulty}")
-            by += button_height + spacing
+            self._draw_button(surface, self.difficulty_button_rect, controller.difficulty)
+            by += button_height + section_gap
 
+            by = self._section_label(surface, "Personality", bx, by)
             self.personality_button_rect = pygame.Rect(bx, by, row_width, button_height)
-            self._draw_button(surface, self.personality_button_rect, f"Personality: {controller.personality}")
+            self._draw_button(surface, self.personality_button_rect, controller.personality)
         else:
             self.difficulty_button_rect = None
             self.personality_button_rect = None
-            self.player_color_button_rect = None
+            self.play_white_button_rect = None
+            self.play_black_button_rect = None
+            self.play_random_button_rect = None
 
         return card_rect.bottom
 
@@ -179,6 +221,43 @@ class UIPanel:
         text_surface = self._button_font.render(label, True, settings.COLOR_BUTTON_TEXT)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)
+
+    def _draw_color_button(self, surface, rect, color_key, active=False):
+        mouse_pos = pygame.mouse.get_pos()
+        if active:
+            bg = settings.COLOR_BUTTON_ACTIVE
+        elif rect.collidepoint(mouse_pos):
+            bg = settings.COLOR_BUTTON_HOVER
+        else:
+            bg = settings.COLOR_BUTTON_BACKGROUND
+        pygame.draw.rect(surface, bg, rect, border_radius=6)
+        if active:
+            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
+
+        icon = self._king_icons.get(color_key)
+        if icon is not None:
+            icon_rect = icon.get_rect(center=rect.center)
+            surface.blit(icon, icon_rect)
+
+    def _draw_random_button(self, surface, rect, active=False):
+        mouse_pos = pygame.mouse.get_pos()
+        if active:
+            bg = settings.COLOR_BUTTON_ACTIVE
+        elif rect.collidepoint(mouse_pos):
+            bg = settings.COLOR_BUTTON_HOVER
+        else:
+            bg = settings.COLOR_BUTTON_BACKGROUND
+        pygame.draw.rect(surface, bg, rect, border_radius=6)
+        if active:
+            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
+
+        radius = 12
+        cx, cy = rect.center
+        half_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(half_surface, (255, 255, 255), (radius, radius), radius)
+        pygame.draw.rect(half_surface, (30, 30, 30), (radius, 0, radius, radius * 2))
+        pygame.draw.circle(half_surface, (200, 200, 200), (radius, radius), radius, width=2)
+        surface.blit(half_surface, (cx - radius, cy - radius))
 
     def _wrap_text(self, text, font, max_width):
         words = text.split(" ")

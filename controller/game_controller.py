@@ -196,6 +196,14 @@ class GameController:
         self._player_color_choice = PLAYER_COLOR_OPTIONS[next_index]
         self._start_new_game()
 
+    def set_player_color(self, choice):
+        if choice not in PLAYER_COLOR_OPTIONS:
+            return
+        if self._player_color_choice == choice:
+            return
+        self._player_color_choice = choice
+        self._start_new_game()
+
     @property
     def board_flipped(self):
         return self._board_flipped
