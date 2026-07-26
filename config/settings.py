@@ -67,3 +67,8 @@ AI_THINK_DELAY_MS = 600
 AI_PERSONALITIES = ["Coach", "Competitive", "Funny"]
 
 DEFAULT_PERSONALITY = "Coach"
+
+PLAYER_COLOR_OPTIONS = ["White", "Black", "Random"]
+
+DEFAULT_PLAYER_COLOR = "White"
+

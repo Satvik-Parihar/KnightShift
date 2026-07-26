@@ -1,4 +1,5 @@
 import time
+import random
 import chess
 
 from domain.game_state import GameState
@@ -17,6 +18,8 @@ from config.settings import (
     DIFFICULTY_PRESETS,
     AI_PERSONALITIES,
     DEFAULT_PERSONALITY,
+    PLAYER_COLOR_OPTIONS,
+    DEFAULT_PLAYER_COLOR,
 )
 
 BLUNDER_THRESHOLD = -150
@@ -25,12 +28,14 @@ BRILLIANT_THRESHOLD = 250
 
 
 class GameController:
-    def __init__(self, vs_ai=True, ai_color=chess.BLACK,
-                 difficulty=DEFAULT_DIFFICULTY, personality=DEFAULT_PERSONALITY):
+    def __init__(self, vs_ai=True, difficulty=DEFAULT_DIFFICULTY,
+                 personality=DEFAULT_PERSONALITY, player_color=DEFAULT_PLAYER_COLOR):
         self._vs_ai = vs_ai
-        self._ai_color = ai_color
         self._difficulty = difficulty
         self._personality = personality
+        self._player_color_choice = player_color
+        self._ai_color = chess.BLACK
+        self._board_flipped = False
         self._ai_thinking = False
         self._ai_think_deadline = None
         self._last_captured_piece_type = None
@@ -40,14 +45,29 @@ class GameController:
         self._input_handler = None
         self._start_new_game()
 
+    def _resolve_ai_color(self):
+        choice = self._player_color_choice
+        if choice == "White":
+            return chess.BLACK
+        if choice == "Black":
+            return chess.WHITE
+        return random.choice([chess.WHITE, chess.BLACK])
+
     def _start_new_game(self):
+        self._ai_color = self._resolve_ai_color() if self._vs_ai else chess.BLACK
+        self._board_flipped = self._vs_ai and self._ai_color == chess.WHITE
+
         self._game_state = GameState()
         self._move_history = MoveHistory()
-        self._input_handler = InputHandler(self._game_state, on_move=self._on_move_played)
+        self._input_handler = InputHandler(
+            self._game_state, on_move=self._on_move_played, flipped=self._board_flipped
+        )
         self._ai_thinking = False
         self._ai_think_deadline = None
         self._last_captured_piece_type = None
         self._latest_comment = None
+
+        self._maybe_start_ai_thinking()
 
     def _on_move_played(self, move, san, captured_piece_type):
         self._move_history.add(san)
@@ -161,6 +181,20 @@ class GameController:
         current_index = AI_PERSONALITIES.index(self._personality)
         next_index = (current_index + 1) % len(AI_PERSONALITIES)
         self._personality = AI_PERSONALITIES[next_index]
+
+    @property
+    def player_color(self):
+        return self._player_color_choice
+
+    def cycle_player_color(self):
+        current_index = PLAYER_COLOR_OPTIONS.index(self._player_color_choice)
+        next_index = (current_index + 1) % len(PLAYER_COLOR_OPTIONS)
+        self._player_color_choice = PLAYER_COLOR_OPTIONS[next_index]
+        self._start_new_game()
+
+    @property
+    def board_flipped(self):
+        return self._board_flipped
 
     @property
     def latest_comment(self):

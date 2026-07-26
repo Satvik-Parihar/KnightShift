@@ -4,11 +4,12 @@ from presentation.board_renderer import BoardRenderer
 
 
 class InputHandler:
-    def __init__(self, game_state, on_move=None):
+    def __init__(self, game_state, on_move=None, flipped=False):
         self._game_state = game_state
         self._selected_square = None
         self._last_move = None
         self._on_move = on_move
+        self._flipped = flipped
 
     @property
     def selected_square(self):
@@ -34,7 +35,7 @@ class InputHandler:
         ]
 
     def handle_click(self, pixel_x, pixel_y):
-        clicked_square = BoardRenderer.pixel_to_square(pixel_x, pixel_y)
+        clicked_square = BoardRenderer.pixel_to_square(pixel_x, pixel_y, self._flipped)
         if clicked_square is None:
             return
         if self._selected_square is None:
