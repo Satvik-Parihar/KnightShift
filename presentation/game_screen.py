@@ -56,6 +56,9 @@ class GameScreen:
         if self._ui_panel.difficulty_button_rect and self._ui_panel.difficulty_button_rect.collidepoint(pos):
             self._controller.cycle_difficulty()
             return
+        if self._ui_panel.player_color_button_rect and self._ui_panel.player_color_button_rect.collidepoint(pos):
+            self._controller.cycle_player_color()
+            return
         if self._ui_panel.personality_button_rect and self._ui_panel.personality_button_rect.collidepoint(pos):
             self._controller.cycle_personality()
             return
@@ -73,9 +76,9 @@ class GameScreen:
             selected_square=self._controller.selected_square,
             legal_move_targets=self._controller.legal_move_targets(),
             last_move=self._controller.last_move,
+            flipped=self._controller.board_flipped,
         )
 
         self._ui_panel.draw(self._window, self._controller)
 
         pygame.display.flip()
-

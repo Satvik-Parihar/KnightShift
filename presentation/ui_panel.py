@@ -24,6 +24,7 @@ class UIPanel:
         self.vs_human_button_rect = None
         self.difficulty_button_rect = None
         self.personality_button_rect = None
+        self.player_color_button_rect = None
 
     def draw(self, surface, controller):
         x_offset = settings.BOARD_PIXELS + 20
@@ -122,7 +123,7 @@ class UIPanel:
         card_top = y
         card_padding = 12
 
-        rows = 2 if not controller.vs_ai else 4
+        rows = 2 if not controller.vs_ai else 5
         card_height = card_padding * 2 + rows * button_height + (rows - 1) * spacing
 
         card_rect = pygame.Rect(x_offset, card_top, panel_width, card_height)
@@ -147,6 +148,10 @@ class UIPanel:
         row_width = button_width * 2 + spacing
 
         if controller.vs_ai:
+            self.player_color_button_rect = pygame.Rect(bx, by, row_width, button_height)
+            self._draw_button(surface, self.player_color_button_rect, f"Play as: {controller.player_color_choice}")
+            by += button_height + spacing
+
             self.difficulty_button_rect = pygame.Rect(bx, by, row_width, button_height)
             self._draw_button(surface, self.difficulty_button_rect, f"Difficulty: {controller.difficulty}")
             by += button_height + spacing
@@ -156,6 +161,7 @@ class UIPanel:
         else:
             self.difficulty_button_rect = None
             self.personality_button_rect = None
+            self.player_color_button_rect = None
 
         return card_rect.bottom
 

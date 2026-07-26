@@ -186,6 +186,10 @@ class GameController:
     def player_color(self):
         return self._player_color_choice
 
+    @property
+    def player_color_choice(self):
+        return self._player_color_choice
+
     def cycle_player_color(self):
         current_index = PLAYER_COLOR_OPTIONS.index(self._player_color_choice)
         next_index = (current_index + 1) % len(PLAYER_COLOR_OPTIONS)
