@@ -173,6 +173,10 @@ class GameController:
         next_index = (current_index + 1) % len(names)
         self._difficulty = names[next_index]
 
+    def set_difficulty(self, name):
+        if name in DIFFICULTY_PRESETS:
+            self._difficulty = name
+
     @property
     def personality(self):
         return self._personality
@@ -181,6 +185,10 @@ class GameController:
         current_index = AI_PERSONALITIES.index(self._personality)
         next_index = (current_index + 1) % len(AI_PERSONALITIES)
         self._personality = AI_PERSONALITIES[next_index]
+
+    def set_personality(self, name):
+        if name in AI_PERSONALITIES:
+            self._personality = name
 
     @property
     def player_color(self):

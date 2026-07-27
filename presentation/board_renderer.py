@@ -123,18 +123,14 @@ class BoardRenderer:
         surface.blit(highlight, (x, y))
 
     def _draw_legal_move_markers(self, surface, legal_move_targets, flipped):
-        radius = settings.SQUARE_SIZE // 4
-        outline_radius = radius + 3
+        radius = settings.SQUARE_SIZE // 7
         for square in legal_move_targets:
             x, y = self.square_to_pixel(square, flipped)
             marker = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
             center_x = settings.SQUARE_SIZE // 2
             center_y = settings.SQUARE_SIZE // 2
 
-            pygame.gfxdraw.filled_circle(marker, center_x, center_y, outline_radius, (20, 20, 20, 90))
-            pygame.gfxdraw.aacircle(marker, center_x, center_y, outline_radius, (20, 20, 20, 90))
-
-            fill_color = (*settings.COLOR_HIGHLIGHT_LEGAL_MOVE, 230)
+            fill_color = (40, 40, 40, 90)
             pygame.gfxdraw.filled_circle(marker, center_x, center_y, radius, fill_color)
             pygame.gfxdraw.aacircle(marker, center_x, center_y, radius, fill_color)
 

@@ -5,6 +5,7 @@ import pygame
 import pygame.gfxdraw
 
 from config import settings
+from config.settings import DIFFICULTY_PRESETS, AI_PERSONALITIES
 from presentation.avatar import draw_avatar
 
 IDLE_LINES = {
@@ -22,6 +23,7 @@ class UIPanel:
         self._commentary_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_COMMENTARY)
         self._status_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_PANEL_TEXT, bold=True)
         self._section_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_SECTION_LABEL, bold=True)
+        self._segment_font = pygame.font.SysFont(settings.FONT_NAME, 12)
 
         self._king_icons = self._load_king_icons()
 
@@ -29,8 +31,8 @@ class UIPanel:
         self.restart_button_rect = None
         self.vs_ai_button_rect = None
         self.vs_human_button_rect = None
-        self.difficulty_button_rect = None
-        self.personality_button_rect = None
+        self.difficulty_button_rects = {}
+        self.personality_button_rects = {}
         self.play_white_button_rect = None
         self.play_black_button_rect = None
         self.play_random_button_rect = None
@@ -193,21 +195,53 @@ class UIPanel:
             by += button_height + section_gap
 
             by = self._section_label(surface, "Difficulty", bx, by)
-            self.difficulty_button_rect = pygame.Rect(bx, by, row_width, button_height)
-            self._draw_button(surface, self.difficulty_button_rect, controller.difficulty)
+            difficulty_names = list(DIFFICULTY_PRESETS.keys())
+            self.difficulty_button_rects = self._draw_segmented_row(
+                surface, bx, by, row_width, button_height, spacing,
+                difficulty_names, controller.difficulty
+            )
             by += button_height + section_gap
 
             by = self._section_label(surface, "Personality", bx, by)
-            self.personality_button_rect = pygame.Rect(bx, by, row_width, button_height)
-            self._draw_button(surface, self.personality_button_rect, controller.personality)
+            self.personality_button_rects = self._draw_segmented_row(
+                surface, bx, by, row_width, button_height, spacing,
+                AI_PERSONALITIES, controller.personality
+            )
         else:
-            self.difficulty_button_rect = None
-            self.personality_button_rect = None
+            self.difficulty_button_rects = {}
+            self.personality_button_rects = {}
             self.play_white_button_rect = None
             self.play_black_button_rect = None
             self.play_random_button_rect = None
 
         return card_rect.bottom
+
+    def _draw_segmented_row(self, surface, bx, by, row_width, button_height, spacing, options, active_value):
+        count = len(options)
+        segment_width = (row_width - spacing * (count - 1)) // count
+        rects = {}
+        x = bx
+        for option in options:
+            rect = pygame.Rect(x, by, segment_width, button_height)
+            rects[option] = rect
+            self._draw_segment_button(surface, rect, option, active=(option == active_value))
+            x += segment_width + spacing
+        return rects
+
+    def _draw_segment_button(self, surface, rect, label, active=False):
+        mouse_pos = pygame.mouse.get_pos()
+        if active:
+            color = settings.COLOR_BUTTON_ACTIVE
+        elif rect.collidepoint(mouse_pos):
+            color = settings.COLOR_BUTTON_HOVER
+        else:
+            color = settings.COLOR_BUTTON_BACKGROUND
+        pygame.draw.rect(surface, color, rect, border_radius=6)
+        if active:
+            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
+        text_surface = self._segment_font.render(label, True, settings.COLOR_BUTTON_TEXT)
+        text_rect = text_surface.get_rect(center=rect.center)
+        surface.blit(text_surface, text_rect)
 
     def _draw_button(self, surface, rect, label, active=False):
         mouse_pos = pygame.mouse.get_pos()
