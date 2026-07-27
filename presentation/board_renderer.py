@@ -2,6 +2,7 @@ import os
 
 import chess
 import pygame
+import pygame.gfxdraw
 
 from config import settings
 
@@ -127,9 +128,16 @@ class BoardRenderer:
         for square in legal_move_targets:
             x, y = self.square_to_pixel(square, flipped)
             marker = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
-            center = (settings.SQUARE_SIZE // 2, settings.SQUARE_SIZE // 2)
-            pygame.draw.circle(marker, (20, 20, 20, 90), center, outline_radius)
-            pygame.draw.circle(marker, (*settings.COLOR_HIGHLIGHT_LEGAL_MOVE, 230), center, radius)
+            center_x = settings.SQUARE_SIZE // 2
+            center_y = settings.SQUARE_SIZE // 2
+
+            pygame.gfxdraw.filled_circle(marker, center_x, center_y, outline_radius, (20, 20, 20, 90))
+            pygame.gfxdraw.aacircle(marker, center_x, center_y, outline_radius, (20, 20, 20, 90))
+
+            fill_color = (*settings.COLOR_HIGHLIGHT_LEGAL_MOVE, 230)
+            pygame.gfxdraw.filled_circle(marker, center_x, center_y, radius, fill_color)
+            pygame.gfxdraw.aacircle(marker, center_x, center_y, radius, fill_color)
+
             surface.blit(marker, (x, y))
 
     def _draw_pieces(self, surface, game_state, flipped):

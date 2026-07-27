@@ -1,6 +1,8 @@
 import os
+import math
 
 import pygame
+import pygame.gfxdraw
 
 from config import settings
 from presentation.avatar import draw_avatar
@@ -142,7 +144,7 @@ class UIPanel:
         spacing = 8
         card_padding = 12
         section_gap = 6
-        label_block = settings.FONT_SIZE_SECTION_LABEL + 4
+        label_block = self._section_font.get_height() + 4
 
         button_width = (panel_width - card_padding * 2 - spacing) // 2
         row_width = panel_width - card_padding * 2
@@ -253,11 +255,19 @@ class UIPanel:
 
         radius = 12
         cx, cy = rect.center
-        half_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-        pygame.draw.circle(half_surface, (255, 255, 255), (radius, radius), radius)
-        pygame.draw.rect(half_surface, (30, 30, 30), (radius, 0, radius, radius * 2))
-        pygame.draw.circle(half_surface, (200, 200, 200), (radius, radius), radius, width=2)
-        surface.blit(half_surface, (cx - radius, cy - radius))
+
+        pygame.gfxdraw.filled_circle(surface, cx, cy, radius, (255, 255, 255))
+        pygame.gfxdraw.aacircle(surface, cx, cy, radius, (255, 255, 255))
+
+        half_points = []
+        steps = 20
+        for i in range(steps + 1):
+            angle = -math.pi / 2 + math.pi * i / steps
+            half_points.append((cx + radius * math.sin(angle), cy - radius * math.cos(angle)))
+        pygame.gfxdraw.filled_polygon(surface, half_points, (30, 30, 30))
+        pygame.gfxdraw.aapolygon(surface, half_points, (30, 30, 30))
+
+        pygame.gfxdraw.aacircle(surface, cx, cy, radius, (200, 200, 200))
 
     def _wrap_text(self, text, font, max_width):
         words = text.split(" ")
