@@ -31,11 +31,61 @@ def _thick_arc(surface, color, center, radius_x, radius_y, start_angle, end_angl
     pygame.gfxdraw.aapolygon(surface, polygon, color)
 
 
+def _draw_highlight(surface, cx, cy, r):
+    highlight_r = int(r * 0.55)
+    hx = cx - r * 0.3
+    hy = cy - r * 0.35
+    pygame.gfxdraw.filled_circle(surface, int(hx), int(hy), highlight_r, (255, 255, 255, 55))
+    pygame.gfxdraw.aacircle(surface, int(hx), int(hy), highlight_r, (255, 255, 255, 55))
+
+    shade_r = int(r * 0.7)
+    sx = cx + r * 0.35
+    sy = cy + r * 0.4
+    pygame.gfxdraw.filled_circle(surface, int(sx), int(sy), shade_r, (0, 0, 0, 25))
+    pygame.gfxdraw.aacircle(surface, int(sx), int(sy), shade_r, (0, 0, 0, 25))
+
+
+def _draw_crown(surface, cx, cy, r):
+    band_half_w = r * 0.62
+    band_bottom_y = cy - r * 0.62
+    band_top_y = cy - r * 0.8
+    tip_y = cy - r * 1.18
+    center_tip_y = cy - r * 1.28
+    valley_y = cy - r * 0.88
+
+    points = [
+        (cx - band_half_w, band_bottom_y),
+        (cx - band_half_w, band_top_y),
+        (cx - band_half_w * 0.6, tip_y),
+        (cx - band_half_w * 0.25, valley_y),
+        (cx, center_tip_y),
+        (cx + band_half_w * 0.25, valley_y),
+        (cx + band_half_w * 0.6, tip_y),
+        (cx + band_half_w, band_top_y),
+        (cx + band_half_w, band_bottom_y),
+    ]
+
+    gold = (224, 184, 60)
+    outline = (120, 90, 20)
+    pygame.gfxdraw.filled_polygon(surface, points, gold)
+    pygame.gfxdraw.aapolygon(surface, points, outline)
+
+    jewel_positions = [
+        (cx - band_half_w * 0.6, tip_y),
+        (cx, center_tip_y),
+        (cx + band_half_w * 0.6, tip_y),
+    ]
+    jewel_radius = max(2, int(r * 0.07))
+    for jx, jy in jewel_positions:
+        pygame.gfxdraw.filled_circle(surface, int(jx), int(jy), jewel_radius, (190, 40, 55))
+        pygame.gfxdraw.aacircle(surface, int(jx), int(jy), jewel_radius, (140, 20, 35))
+
+
 def draw_avatar(surface, center, radius, personality):
     scaled_radius = radius * SUPERSAMPLE
-    size = scaled_radius * 2 + 4
+    size = scaled_radius * 3
     temp = pygame.Surface((size, size), pygame.SRCALPHA)
-    scaled_center = (size // 2, size // 2)
+    scaled_center = (size // 2, int(size * 0.6))
 
     color = settings.AVATAR_COLORS.get(personality, settings.AVATAR_COLORS["Coach"])
     _aa_circle(temp, scaled_center, scaled_radius, color)
@@ -43,6 +93,8 @@ def draw_avatar(surface, center, radius, personality):
 
     cx, cy = scaled_center
     r = scaled_radius
+
+    _draw_highlight(temp, cx, cy, r)
 
     ring_color = (255, 255, 255)
     for offset in range(3 * SUPERSAMPLE // 2):
@@ -57,9 +109,13 @@ def draw_avatar(surface, center, radius, personality):
     else:
         _draw_coach_face(temp, cx, cy, r)
 
+    _draw_crown(temp, cx, cy, r)
+
     final_size = temp.get_width() // SUPERSAMPLE
     downscaled = pygame.transform.smoothscale(temp, (final_size, final_size))
-    dest_rect = downscaled.get_rect(center=(int(center[0]), int(center[1])))
+    dest_rect = downscaled.get_rect()
+    dest_rect.centerx = int(center[0])
+    dest_rect.centery = int(center[1]) - int(radius * 0.3)
     surface.blit(downscaled, dest_rect)
 
 
