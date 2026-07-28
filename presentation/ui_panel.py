@@ -60,44 +60,52 @@ class UIPanel:
             y += 45
 
         y = self._draw_status_badge(surface, controller, x_offset, panel_width, y)
-        y += 14
+        y += 10
 
         y = self._draw_buttons_card(surface, controller, x_offset, panel_width, y)
-        y += 16
+        y += 12
 
         self._draw_move_history_card(surface, controller, x_offset, panel_width, y)
 
     def _draw_avatar_section(self, surface, controller, x_offset, panel_width, y):
-        avatar_radius = 30
+        avatar_radius = 22
         avatar_center = (x_offset + avatar_radius, y + avatar_radius)
         draw_avatar(surface, avatar_center, avatar_radius, controller.personality)
 
-        name_surface = self._heading_font.render(controller.personality, True, settings.COLOR_PANEL_HEADING)
-        surface.blit(name_surface, (x_offset + avatar_radius * 2 + 14, y + 4))
+        name_surface = self._text_font.render(controller.personality, True, settings.COLOR_PANEL_HEADING)
+        surface.blit(name_surface, (x_offset + avatar_radius * 2 + 12, y + avatar_radius - 9))
 
-        bubble_top = y + avatar_radius * 2 + 12
+        bubble_top = y + avatar_radius * 2 + 10
         comment = controller.latest_comment or IDLE_LINES.get(controller.personality, "")
         bubble_bottom = self._draw_speech_bubble(surface, comment, x_offset, panel_width, bubble_top, avatar_center[0])
 
-        return bubble_bottom + 16
+        return bubble_bottom + 12
 
     def _draw_speech_bubble(self, surface, text, x_offset, panel_width, top, tail_x):
+        max_lines = 2
         lines = self._wrap_text(text, self._commentary_font, panel_width - 28)
-        line_height = settings.FONT_SIZE_COMMENTARY + 8
-        bubble_height = line_height * len(lines) + 22
-        bubble_rect = pygame.Rect(x_offset, top + 10, panel_width, bubble_height)
+        if len(lines) > max_lines:
+            lines = lines[:max_lines]
+            last = lines[-1]
+            while self._commentary_font.size(last + "...")[0] > panel_width - 28 and len(last) > 1:
+                last = last[:-1]
+            lines[-1] = last + "..."
 
-        pygame.draw.rect(surface, settings.COLOR_SPEECH_BUBBLE_BG, bubble_rect, border_radius=12)
-        pygame.draw.rect(surface, settings.COLOR_SPEECH_BUBBLE_BORDER, bubble_rect, width=2, border_radius=12)
+        line_height = settings.FONT_SIZE_COMMENTARY + 6
+        bubble_height = line_height * len(lines) + 16
+        bubble_rect = pygame.Rect(x_offset, top + 8, panel_width, bubble_height)
+
+        pygame.draw.rect(surface, settings.COLOR_SPEECH_BUBBLE_BG, bubble_rect, border_radius=10)
+        pygame.draw.rect(surface, settings.COLOR_SPEECH_BUBBLE_BORDER, bubble_rect, width=2, border_radius=10)
 
         tail_points = [
-            (tail_x - 10, top + 10),
-            (tail_x + 12, top + 10),
+            (tail_x - 8, top + 8),
+            (tail_x + 10, top + 8),
             (tail_x - 2, top - 2),
         ]
         pygame.draw.polygon(surface, settings.COLOR_SPEECH_BUBBLE_BG, tail_points)
         pygame.draw.polygon(surface, settings.COLOR_SPEECH_BUBBLE_BORDER, tail_points, width=2)
-        pygame.draw.rect(surface, settings.COLOR_SPEECH_BUBBLE_BG, (tail_x - 8, top + 8, 20, 6))
+        pygame.draw.rect(surface, settings.COLOR_SPEECH_BUBBLE_BG, (tail_x - 6, top + 6, 16, 5))
 
         text_y = bubble_rect.top + 11
         for line in lines:
@@ -109,7 +117,7 @@ class UIPanel:
 
     def _draw_status_badge(self, surface, controller, x_offset, panel_width, y):
         status_text = self._status_text(controller)
-        badge_height = 34
+        badge_height = 30
         badge_rect = pygame.Rect(x_offset, y, panel_width, badge_height)
 
         if controller.is_game_over():
@@ -142,11 +150,11 @@ class UIPanel:
         return y + label.get_height() + 4
 
     def _draw_buttons_card(self, surface, controller, x_offset, panel_width, y):
-        button_height = 34
-        spacing = 8
-        card_padding = 12
-        section_gap = 6
-        label_block = self._section_font.get_height() + 4
+        button_height = 30
+        spacing = 6
+        card_padding = 10
+        section_gap = 4
+        label_block = self._section_font.get_height() + 3
 
         button_width = (panel_width - card_padding * 2 - spacing) // 2
         row_width = panel_width - card_padding * 2

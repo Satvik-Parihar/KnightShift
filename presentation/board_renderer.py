@@ -76,16 +76,26 @@ class BoardRenderer:
                 pygame.draw.rect(surface, color, (x, y, settings.SQUARE_SIZE, settings.SQUARE_SIZE))
 
     def _draw_coordinates(self, surface, flipped):
-        label_font = pygame.font.SysFont(settings.FONT_NAME, 12, bold=True)
+        label_font = pygame.font.SysFont(settings.FONT_NAME, 13, bold=True)
         files = "abcdefgh"
+        light_text = (245, 245, 235)
+        dark_text = (40, 40, 40)
         for file_index in range(8):
             square = chess.square(file_index, 0)
             x, y = self.square_to_pixel(square, flipped)
             is_light = (file_index + 0) % 2 == 1
-            color = settings.COLOR_DARK_SQUARE if is_light else settings.COLOR_LIGHT_SQUARE
+            text_color = dark_text if is_light else light_text
+            outline_color = light_text if is_light else dark_text
+
             label = files[file_index]
-            text = label_font.render(label, True, color)
-            surface.blit(text, (x + settings.SQUARE_SIZE - 12, y + settings.SQUARE_SIZE - 15))
+            pos = (x + settings.SQUARE_SIZE - 13, y + settings.SQUARE_SIZE - 16)
+
+            outline = label_font.render(label, True, outline_color)
+            for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                surface.blit(outline, (pos[0] + dx, pos[1] + dy))
+
+            text = label_font.render(label, True, text_color)
+            surface.blit(text, pos)
 
     def _draw_board_border(self, surface):
         pygame.draw.rect(
