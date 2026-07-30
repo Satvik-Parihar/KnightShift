@@ -23,7 +23,7 @@ class UIPanel:
         self._commentary_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_COMMENTARY)
         self._status_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_PANEL_TEXT, bold=True)
         self._section_font = pygame.font.SysFont(settings.FONT_NAME, settings.FONT_SIZE_SECTION_LABEL, bold=True)
-        self._segment_font = pygame.font.SysFont(settings.FONT_NAME, 14)
+        self._segment_font = pygame.font.SysFont(settings.FONT_NAME, 18)
 
         self._king_icons = self._load_king_icons()
 
@@ -68,7 +68,7 @@ class UIPanel:
         self._draw_move_history_card(surface, controller, x_offset, panel_width, y)
 
     def _draw_avatar_section(self, surface, controller, x_offset, panel_width, y):
-        avatar_radius = 28
+        avatar_radius = 36
         avatar_center = (x_offset + avatar_radius, y + avatar_radius)
         draw_avatar(surface, avatar_center, avatar_radius, controller.personality)
 
@@ -117,7 +117,7 @@ class UIPanel:
 
     def _draw_status_badge(self, surface, controller, x_offset, panel_width, y):
         status_text = self._status_text(controller)
-        badge_height = 36
+        badge_height = 46
         badge_rect = pygame.Rect(x_offset, y, panel_width, badge_height)
 
         if controller.is_game_over():
@@ -150,11 +150,11 @@ class UIPanel:
         return y + label.get_height() + 4
 
     def _draw_buttons_card(self, surface, controller, x_offset, panel_width, y):
-        button_height = 38
-        spacing = 8
-        card_padding = 13
-        section_gap = 5
-        label_block = self._section_font.get_height() + 3
+        button_height = 48
+        spacing = 10
+        card_padding = 17
+        section_gap = 7
+        label_block = self._section_font.get_height() + 4
 
         button_width = (panel_width - card_padding * 2 - spacing) // 2
         row_width = panel_width - card_padding * 2
