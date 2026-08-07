@@ -66,6 +66,7 @@ class GameController:
         self._ai_think_deadline = None
         self._last_captured_piece_type = None
         self._latest_comment = None
+        self._forfeited = False
 
         self._maybe_start_ai_thinking()
 
@@ -75,7 +76,7 @@ class GameController:
         self._maybe_start_ai_thinking()
 
     def _maybe_start_ai_thinking(self):
-        if not self._vs_ai or self._game_state.is_game_over():
+        if not self._vs_ai or self.is_game_over():
             return
         if self._game_state.turn() != self._ai_color:
             return
@@ -185,10 +186,12 @@ class GameController:
         current_index = AI_PERSONALITIES.index(self._personality)
         next_index = (current_index + 1) % len(AI_PERSONALITIES)
         self._personality = AI_PERSONALITIES[next_index]
+        self._latest_comment = None
 
     def set_personality(self, name):
         if name in AI_PERSONALITIES:
             self._personality = name
+            self._latest_comment = None
 
     @property
     def player_color(self):
@@ -227,7 +230,9 @@ class GameController:
         self._start_new_game()
 
     def handle_click(self, pixel_x, pixel_y):
-        if self._game_state.is_game_over():
+        if self.is_game_over():
+            return
+        if self._vs_ai and (self._ai_thinking or self._game_state.turn() == self._ai_color):
             return
 
         moves_before = len(self._move_history.get_entries())
@@ -254,32 +259,66 @@ class GameController:
     def game_state(self):
         return self._game_state
 
+    @property
+    def is_ongoing(self):
+        return len(self._move_history.get_entries()) > 0 and not self.is_game_over()
+
     def is_game_over(self):
-        return self._game_state.is_game_over()
+        return self._forfeited or self._game_state.is_game_over()
 
     def get_result(self):
+        if self._forfeited:
+            if self._vs_ai:
+                winner = "Black" if self._ai_color == chess.BLACK else "White"
+            else:
+                winner = "Black" if self._game_state.turn() == chess.WHITE else "White"
+            return f"Forfeit - {winner} wins"
         return self._game_state.get_result()
+
+    def forfeit(self):
+        if not self.is_ongoing:
+            return False
+        self._forfeited = True
+        self._ai_thinking = False
+        self._ai_think_deadline = None
+
+        forfeit_comments = {
+            "Coach": "Discretion is the better part of valor. Good game!",
+            "Competitive": "I'll take the win! Better luck next time.",
+            "Funny": "Bailing out already? I was just getting warmed up!",
+        }
+        self._latest_comment = forfeit_comments.get(self._personality, "Game forfeited.")
+        return True
 
     def move_history_pairs(self):
         return self._move_history.formatted_pairs()
 
     def undo(self):
-        undone = self._game_state.undo_move()
-        if not undone:
+        board = self._game_state.get_board()
+        if not board.move_stack:
             return False
 
-        self._move_history.pop()
+        if self._vs_ai:
+            pop_count = 2 if len(board.move_stack) >= 2 else 1
+        else:
+            pop_count = 1
 
-        if self._vs_ai and self._game_state.turn() == self._ai_color and self._game_state.get_board().move_stack:
-            self._game_state.undo_move()
-            self._move_history.pop()
+        for _ in range(pop_count):
+            if self._game_state.undo_move():
+                self._move_history.pop()
 
         self._ai_thinking = False
         self._ai_think_deadline = None
         self._last_captured_piece_type = None
         self._latest_comment = None
         self._input_handler.deselect()
-        self._input_handler.reset_last_move()
+
+        if board.move_stack:
+            self._input_handler.set_last_move(board.peek())
+        else:
+            self._input_handler.reset_last_move()
+
+        self._maybe_start_ai_thinking()
         return True
 
     def restart(self):

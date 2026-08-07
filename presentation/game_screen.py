@@ -47,29 +47,38 @@ class GameScreen:
         if x < settings.BOARD_PIXELS:
             self._controller.handle_click(x, y)
             return
-        if self._ui_panel.vs_ai_button_rect and self._ui_panel.vs_ai_button_rect.collidepoint(pos):
-            self._controller.set_mode(vs_ai=True)
+
+        if self._ui_panel.avatar_rect and self._ui_panel.avatar_rect.collidepoint(pos):
+            if self._controller.vs_ai and not self._controller.is_ongoing:
+                self._controller.cycle_personality()
             return
-        if self._ui_panel.vs_human_button_rect and self._ui_panel.vs_human_button_rect.collidepoint(pos):
-            self._controller.set_mode(vs_ai=False)
-            return
-        for name, rect in self._ui_panel.difficulty_button_rects.items():
-            if rect.collidepoint(pos):
-                self._controller.set_difficulty(name)
+
+        if not self._controller.is_ongoing:
+            if self._ui_panel.vs_ai_button_rect and self._ui_panel.vs_ai_button_rect.collidepoint(pos):
+                self._controller.set_mode(vs_ai=True)
                 return
-        if self._ui_panel.play_white_button_rect and self._ui_panel.play_white_button_rect.collidepoint(pos):
-            self._controller.set_player_color("White")
-            return
-        if self._ui_panel.play_black_button_rect and self._ui_panel.play_black_button_rect.collidepoint(pos):
-            self._controller.set_player_color("Black")
-            return
-        if self._ui_panel.play_random_button_rect and self._ui_panel.play_random_button_rect.collidepoint(pos):
-            self._controller.set_player_color("Random")
-            return
-        for name, rect in self._ui_panel.personality_button_rects.items():
-            if rect.collidepoint(pos):
-                self._controller.set_personality(name)
+            if self._ui_panel.vs_human_button_rect and self._ui_panel.vs_human_button_rect.collidepoint(pos):
+                self._controller.set_mode(vs_ai=False)
                 return
+            for name, rect in self._ui_panel.difficulty_button_rects.items():
+                if rect.collidepoint(pos):
+                    self._controller.set_difficulty(name)
+                    return
+            if self._ui_panel.play_white_button_rect and self._ui_panel.play_white_button_rect.collidepoint(pos):
+                self._controller.set_player_color("White")
+                return
+            if self._ui_panel.play_black_button_rect and self._ui_panel.play_black_button_rect.collidepoint(pos):
+                self._controller.set_player_color("Black")
+                return
+            if self._ui_panel.play_random_button_rect and self._ui_panel.play_random_button_rect.collidepoint(pos):
+                self._controller.set_player_color("Random")
+                return
+
+        if self._ui_panel.forfeit_button_rect and self._ui_panel.forfeit_button_rect.collidepoint(pos):
+            if self._controller.is_ongoing:
+                self._controller.forfeit()
+            return
+
         if self._ui_panel.undo_button_rect and self._ui_panel.undo_button_rect.collidepoint(pos):
             self._controller.undo()
         elif self._ui_panel.restart_button_rect and self._ui_panel.restart_button_rect.collidepoint(pos):

@@ -32,7 +32,8 @@ class UIPanel:
         self.vs_ai_button_rect = None
         self.vs_human_button_rect = None
         self.difficulty_button_rects = {}
-        self.personality_button_rects = {}
+        self.forfeit_button_rect = None
+        self.avatar_rect = None
         self.play_white_button_rect = None
         self.play_black_button_rect = None
         self.play_random_button_rect = None
@@ -55,6 +56,7 @@ class UIPanel:
         if controller.vs_ai:
             y = self._draw_avatar_section(surface, controller, x_offset, panel_width, y)
         else:
+            self.avatar_rect = None
             title = self._heading_font.render("KnightShift", True, settings.COLOR_PANEL_HEADING)
             surface.blit(title, (x_offset, y))
             y += 45
@@ -70,10 +72,15 @@ class UIPanel:
     def _draw_avatar_section(self, surface, controller, x_offset, panel_width, y):
         avatar_radius = 36
         avatar_center = (x_offset + avatar_radius, y + avatar_radius)
+        self.avatar_rect = pygame.Rect(x_offset, y, avatar_radius * 2, avatar_radius * 2)
         draw_avatar(surface, avatar_center, avatar_radius, controller.personality)
 
         name_surface = self._text_font.render(controller.personality, True, settings.COLOR_PANEL_HEADING)
-        surface.blit(name_surface, (x_offset + avatar_radius * 2 + 12, y + avatar_radius - 9))
+        surface.blit(name_surface, (x_offset + avatar_radius * 2 + 12, y + avatar_radius - 16))
+
+        if not controller.is_ongoing:
+            hint_surface = self._segment_font.render("(Click to change)", True, settings.COLOR_SECTION_LABEL)
+            surface.blit(hint_surface, (x_offset + avatar_radius * 2 + 12, y + avatar_radius + 8))
 
         bubble_top = y + avatar_radius * 2 + 10
         comment = controller.latest_comment or IDLE_LINES.get(controller.personality, "")
@@ -150,16 +157,18 @@ class UIPanel:
         return y + label.get_height() + 4
 
     def _draw_buttons_card(self, surface, controller, x_offset, panel_width, y):
-        button_height = 48
+        button_height = 44
         spacing = 10
-        card_padding = 17
+        card_padding = 15
         section_gap = 7
         label_block = self._section_font.get_height() + 4
 
         button_width = (panel_width - card_padding * 2 - spacing) // 2
         row_width = panel_width - card_padding * 2
 
-        section_count = 2 if not controller.vs_ai else 5
+        is_ongoing = controller.is_ongoing
+
+        section_count = 3 if not controller.vs_ai else 5
         card_height = card_padding * 2 + section_count * (label_block + button_height) \
             + (section_count - 1) * section_gap
 
@@ -180,8 +189,8 @@ class UIPanel:
         by = self._section_label(surface, "Mode", bx, by)
         self.vs_ai_button_rect = pygame.Rect(bx, by, button_width, button_height)
         self.vs_human_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
-        self._draw_button(surface, self.vs_ai_button_rect, "vs AI", active=controller.vs_ai)
-        self._draw_button(surface, self.vs_human_button_rect, "vs Human", active=not controller.vs_ai)
+        self._draw_button(surface, self.vs_ai_button_rect, "vs AI", active=controller.vs_ai, disabled=is_ongoing)
+        self._draw_button(surface, self.vs_human_button_rect, "vs Human", active=not controller.vs_ai, disabled=is_ongoing)
         by += button_height + section_gap
 
         if controller.vs_ai:
@@ -195,36 +204,33 @@ class UIPanel:
             )
 
             self._draw_color_button(surface, self.play_white_button_rect, "white",
-                                     active=controller.player_color_choice == "White")
+                                     active=controller.player_color_choice == "White", disabled=is_ongoing)
             self._draw_color_button(surface, self.play_black_button_rect, "black",
-                                     active=controller.player_color_choice == "Black")
+                                     active=controller.player_color_choice == "Black", disabled=is_ongoing)
             self._draw_random_button(surface, self.play_random_button_rect,
-                                      active=controller.player_color_choice == "Random")
+                                      active=controller.player_color_choice == "Random", disabled=is_ongoing)
             by += button_height + section_gap
 
             by = self._section_label(surface, "Difficulty", bx, by)
             difficulty_names = list(DIFFICULTY_PRESETS.keys())
             self.difficulty_button_rects = self._draw_segmented_row(
                 surface, bx, by, row_width, button_height, spacing,
-                difficulty_names, controller.difficulty
+                difficulty_names, controller.difficulty, disabled=is_ongoing
             )
             by += button_height + section_gap
-
-            by = self._section_label(surface, "Personality", bx, by)
-            self.personality_button_rects = self._draw_segmented_row(
-                surface, bx, by, row_width, button_height, spacing,
-                AI_PERSONALITIES, controller.personality
-            )
         else:
             self.difficulty_button_rects = {}
-            self.personality_button_rects = {}
             self.play_white_button_rect = None
             self.play_black_button_rect = None
             self.play_random_button_rect = None
 
+        by = self._section_label(surface, "Actions", bx, by)
+        self.forfeit_button_rect = pygame.Rect(bx, by, row_width, button_height)
+        self._draw_forfeit_button(surface, self.forfeit_button_rect, disabled=not is_ongoing)
+
         return card_rect.bottom
 
-    def _draw_segmented_row(self, surface, bx, by, row_width, button_height, spacing, options, active_value):
+    def _draw_segmented_row(self, surface, bx, by, row_width, button_height, spacing, options, active_value, disabled=False):
         count = len(options)
         segment_width = (row_width - spacing * (count - 1)) // count
         rects = {}
@@ -232,84 +238,141 @@ class UIPanel:
         for option in options:
             rect = pygame.Rect(x, by, segment_width, button_height)
             rects[option] = rect
-            self._draw_segment_button(surface, rect, option, active=(option == active_value))
+            self._draw_segment_button(surface, rect, option, active=(option == active_value), disabled=disabled)
             x += segment_width + spacing
         return rects
 
-    def _draw_segment_button(self, surface, rect, label, active=False):
+    def _draw_segment_button(self, surface, rect, label, active=False, disabled=False):
         mouse_pos = pygame.mouse.get_pos()
-        if active:
+        if disabled:
+            color = (45, 45, 45) if not active else (40, 75, 55)
+            border_color = (65, 65, 65) if not active else (70, 110, 80)
+            text_color = (130, 130, 130)
+        elif active:
             color = settings.COLOR_BUTTON_ACTIVE
+            border_color = settings.COLOR_BUTTON_ACTIVE_BORDER
+            text_color = settings.COLOR_BUTTON_TEXT
         elif rect.collidepoint(mouse_pos):
             color = settings.COLOR_BUTTON_HOVER
+            border_color = None
+            text_color = settings.COLOR_BUTTON_TEXT
         else:
             color = settings.COLOR_BUTTON_BACKGROUND
+            border_color = None
+            text_color = settings.COLOR_BUTTON_TEXT
+
         pygame.draw.rect(surface, color, rect, border_radius=6)
-        if active:
-            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
-        text_surface = self._segment_font.render(label, True, settings.COLOR_BUTTON_TEXT)
+        if border_color:
+            pygame.draw.rect(surface, border_color, rect, width=2, border_radius=6)
+        text_surface = self._segment_font.render(label, True, text_color)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)
 
-    def _draw_button(self, surface, rect, label, active=False):
+    def _draw_button(self, surface, rect, label, active=False, disabled=False):
         mouse_pos = pygame.mouse.get_pos()
-        if active:
+        if disabled:
+            color = (45, 45, 45) if not active else (40, 75, 55)
+            border_color = (65, 65, 65) if not active else (70, 110, 80)
+            text_color = (130, 130, 130)
+        elif active:
             color = settings.COLOR_BUTTON_ACTIVE
+            border_color = settings.COLOR_BUTTON_ACTIVE_BORDER
+            text_color = settings.COLOR_BUTTON_TEXT
         elif rect.collidepoint(mouse_pos):
             color = settings.COLOR_BUTTON_HOVER
+            border_color = None
+            text_color = settings.COLOR_BUTTON_TEXT
         else:
             color = settings.COLOR_BUTTON_BACKGROUND
+            border_color = None
+            text_color = settings.COLOR_BUTTON_TEXT
+
         pygame.draw.rect(surface, color, rect, border_radius=6)
-        if active:
-            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
-        text_surface = self._button_font.render(label, True, settings.COLOR_BUTTON_TEXT)
+        if border_color:
+            pygame.draw.rect(surface, border_color, rect, width=2, border_radius=6)
+        text_surface = self._button_font.render(label, True, text_color)
         text_rect = text_surface.get_rect(center=rect.center)
         surface.blit(text_surface, text_rect)
 
-    def _draw_color_button(self, surface, rect, color_key, active=False):
+    def _draw_color_button(self, surface, rect, color_key, active=False, disabled=False):
         mouse_pos = pygame.mouse.get_pos()
-        if active:
+        if disabled:
+            bg = (45, 45, 45) if not active else (40, 75, 55)
+            border_color = (65, 65, 65) if not active else (70, 110, 80)
+        elif active:
             bg = settings.COLOR_BUTTON_ACTIVE
+            border_color = settings.COLOR_BUTTON_ACTIVE_BORDER
         elif rect.collidepoint(mouse_pos):
             bg = settings.COLOR_BUTTON_HOVER
+            border_color = None
         else:
             bg = settings.COLOR_BUTTON_BACKGROUND
+            border_color = None
+
         pygame.draw.rect(surface, bg, rect, border_radius=6)
-        if active:
-            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
+        if border_color:
+            pygame.draw.rect(surface, border_color, rect, width=2, border_radius=6)
 
         icon = self._king_icons.get(color_key)
         if icon is not None:
             icon_rect = icon.get_rect(center=rect.center)
             surface.blit(icon, icon_rect)
 
-    def _draw_random_button(self, surface, rect, active=False):
+    def _draw_random_button(self, surface, rect, active=False, disabled=False):
         mouse_pos = pygame.mouse.get_pos()
-        if active:
+        if disabled:
+            bg = (45, 45, 45) if not active else (40, 75, 55)
+            border_color = (65, 65, 65) if not active else (70, 110, 80)
+        elif active:
             bg = settings.COLOR_BUTTON_ACTIVE
+            border_color = settings.COLOR_BUTTON_ACTIVE_BORDER
         elif rect.collidepoint(mouse_pos):
             bg = settings.COLOR_BUTTON_HOVER
+            border_color = None
         else:
             bg = settings.COLOR_BUTTON_BACKGROUND
+            border_color = None
+
         pygame.draw.rect(surface, bg, rect, border_radius=6)
-        if active:
-            pygame.draw.rect(surface, settings.COLOR_BUTTON_ACTIVE_BORDER, rect, width=2, border_radius=6)
+        if border_color:
+            pygame.draw.rect(surface, border_color, rect, width=2, border_radius=6)
 
         radius = 12
         cx, cy = rect.center
 
-        pygame.gfxdraw.filled_circle(surface, cx, cy, radius, (255, 255, 255))
-        pygame.gfxdraw.aacircle(surface, cx, cy, radius, (255, 255, 255))
+        pygame.gfxdraw.filled_circle(surface, cx, cy, radius, (200, 200, 200) if disabled else (255, 255, 255))
+        pygame.gfxdraw.aacircle(surface, cx, cy, radius, (200, 200, 200) if disabled else (255, 255, 255))
 
         half_points = []
         steps = 20
         for i in range(steps + 1):
             angle = -math.pi / 2 + math.pi * i / steps
             half_points.append((cx + radius * math.sin(angle), cy - radius * math.cos(angle)))
-        pygame.gfxdraw.filled_polygon(surface, half_points, (30, 30, 30))
-        pygame.gfxdraw.aapolygon(surface, half_points, (30, 30, 30))
+        pygame.gfxdraw.filled_polygon(surface, half_points, (60, 60, 60) if disabled else (30, 30, 30))
+        pygame.gfxdraw.aapolygon(surface, half_points, (60, 60, 60) if disabled else (30, 30, 30))
 
-        pygame.gfxdraw.aacircle(surface, cx, cy, radius, (200, 200, 200))
+        pygame.gfxdraw.aacircle(surface, cx, cy, radius, (150, 150, 150) if disabled else (200, 200, 200))
+
+    def _draw_forfeit_button(self, surface, rect, disabled=False):
+        mouse_pos = pygame.mouse.get_pos()
+        if disabled:
+            color = (45, 45, 45)
+            border_color = (60, 60, 60)
+            text_color = (100, 100, 100)
+        elif rect.collidepoint(mouse_pos):
+            color = (190, 55, 55)
+            border_color = (240, 100, 100)
+            text_color = (255, 255, 255)
+        else:
+            color = (150, 40, 40)
+            border_color = (200, 70, 70)
+            text_color = (245, 245, 245)
+
+        pygame.draw.rect(surface, color, rect, border_radius=6)
+        pygame.draw.rect(surface, border_color, rect, width=1, border_radius=6)
+        text_surface = self._button_font.render("Forfeit Game", True, text_color)
+        text_rect = text_surface.get_rect(center=rect.center)
+        surface.blit(text_surface, text_rect)
 
     def _wrap_text(self, text, font, max_width):
         words = text.split(" ")

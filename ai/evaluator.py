@@ -1,4 +1,5 @@
 import random
+import zlib
 
 import chess
 
@@ -29,7 +30,7 @@ def evaluate(board: chess.Board, weights: dict = None) -> float:
 
     if board.is_checkmate():
         return -99999 if board.turn == chess.WHITE else 99999
-    if board.is_stalemate() or board.is_insufficient_material():
+    if board.is_game_over():
         return 0
 
     score = 0
@@ -124,5 +125,5 @@ def _threat_score(board):
 def _personality_jitter(board, amount):
     if not amount:
         return 0.0
-    rng = random.Random(hash(board.board_fen()))
+    rng = random.Random(zlib.crc32(board.board_fen().encode('utf-8')))
     return rng.uniform(-amount, amount)
