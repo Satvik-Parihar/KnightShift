@@ -38,6 +38,15 @@ class UIPanel:
         self.play_black_button_rect = None
         self.play_random_button_rect = None
 
+        self._scroll_offset = 0
+        self._last_move_count = 0
+
+    def handle_scroll(self, dy):
+        if dy > 0:
+            self._scroll_offset = max(0, self._scroll_offset - 1)
+        elif dy < 0:
+            self._scroll_offset += 1
+
     def _load_king_icons(self):
         icons = {}
         icon_size = 26
@@ -168,67 +177,99 @@ class UIPanel:
 
         is_ongoing = controller.is_ongoing
 
-        section_count = 3 if not controller.vs_ai else 5
-        card_height = card_padding * 2 + section_count * (label_block + button_height) \
-            + (section_count - 1) * section_gap
+        if is_ongoing:
+            section_count = 2
+            card_height = card_padding * 2 + section_count * (label_block + button_height) \
+                + (section_count - 1) * section_gap
 
-        card_rect = pygame.Rect(x_offset, y, panel_width, card_height)
-        pygame.draw.rect(surface, settings.COLOR_CARD_BACKGROUND, card_rect, border_radius=10)
-        pygame.draw.rect(surface, settings.COLOR_CARD_BORDER, card_rect, width=1, border_radius=10)
+            card_rect = pygame.Rect(x_offset, y, panel_width, card_height)
+            pygame.draw.rect(surface, settings.COLOR_CARD_BACKGROUND, card_rect, border_radius=10)
+            pygame.draw.rect(surface, settings.COLOR_CARD_BORDER, card_rect, width=1, border_radius=10)
 
-        bx = x_offset + card_padding
-        by = y + card_padding
+            bx = x_offset + card_padding
+            by = y + card_padding
 
-        by = self._section_label(surface, "Game", bx, by)
-        self.undo_button_rect = pygame.Rect(bx, by, button_width, button_height)
-        self.restart_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
-        self._draw_button(surface, self.undo_button_rect, "Undo")
-        self._draw_button(surface, self.restart_button_rect, "New Game")
-        by += button_height + section_gap
-
-        by = self._section_label(surface, "Mode", bx, by)
-        self.vs_ai_button_rect = pygame.Rect(bx, by, button_width, button_height)
-        self.vs_human_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
-        self._draw_button(surface, self.vs_ai_button_rect, "vs AI", active=controller.vs_ai, disabled=is_ongoing)
-        self._draw_button(surface, self.vs_human_button_rect, "vs Human", active=not controller.vs_ai, disabled=is_ongoing)
-        by += button_height + section_gap
-
-        if controller.vs_ai:
-            by = self._section_label(surface, "Play as", bx, by)
-            triple_width = (row_width - spacing * 2) // 3
-
-            self.play_white_button_rect = pygame.Rect(bx, by, triple_width, button_height)
-            self.play_black_button_rect = pygame.Rect(bx + triple_width + spacing, by, triple_width, button_height)
-            self.play_random_button_rect = pygame.Rect(
-                bx + (triple_width + spacing) * 2, by, triple_width, button_height
-            )
-
-            self._draw_color_button(surface, self.play_white_button_rect, "white",
-                                     active=controller.player_color_choice == "White", disabled=is_ongoing)
-            self._draw_color_button(surface, self.play_black_button_rect, "black",
-                                     active=controller.player_color_choice == "Black", disabled=is_ongoing)
-            self._draw_random_button(surface, self.play_random_button_rect,
-                                      active=controller.player_color_choice == "Random", disabled=is_ongoing)
+            by = self._section_label(surface, "Game", bx, by)
+            self.undo_button_rect = pygame.Rect(bx, by, button_width, button_height)
+            self.restart_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
+            self._draw_button(surface, self.undo_button_rect, "Undo")
+            self._draw_button(surface, self.restart_button_rect, "New Game")
             by += button_height + section_gap
 
-            by = self._section_label(surface, "Difficulty", bx, by)
-            difficulty_names = list(DIFFICULTY_PRESETS.keys())
-            self.difficulty_button_rects = self._draw_segmented_row(
-                surface, bx, by, row_width, button_height, spacing,
-                difficulty_names, controller.difficulty, disabled=is_ongoing
-            )
-            by += button_height + section_gap
-        else:
-            self.difficulty_button_rects = {}
+            self.vs_ai_button_rect = None
+            self.vs_human_button_rect = None
             self.play_white_button_rect = None
             self.play_black_button_rect = None
             self.play_random_button_rect = None
+            self.difficulty_button_rects = {}
 
-        by = self._section_label(surface, "Actions", bx, by)
-        self.forfeit_button_rect = pygame.Rect(bx, by, row_width, button_height)
-        self._draw_forfeit_button(surface, self.forfeit_button_rect, disabled=not is_ongoing)
+            by = self._section_label(surface, "Actions", bx, by)
+            self.forfeit_button_rect = pygame.Rect(bx, by, row_width, button_height)
+            self._draw_forfeit_button(surface, self.forfeit_button_rect, disabled=False)
 
-        return card_rect.bottom
+            return card_rect.bottom
+        else:
+            section_count = 3 if not controller.vs_ai else 5
+            card_height = card_padding * 2 + section_count * (label_block + button_height) \
+                + (section_count - 1) * section_gap
+
+            card_rect = pygame.Rect(x_offset, y, panel_width, card_height)
+            pygame.draw.rect(surface, settings.COLOR_CARD_BACKGROUND, card_rect, border_radius=10)
+            pygame.draw.rect(surface, settings.COLOR_CARD_BORDER, card_rect, width=1, border_radius=10)
+
+            bx = x_offset + card_padding
+            by = y + card_padding
+
+            by = self._section_label(surface, "Game", bx, by)
+            self.undo_button_rect = pygame.Rect(bx, by, button_width, button_height)
+            self.restart_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
+            self._draw_button(surface, self.undo_button_rect, "Undo")
+            self._draw_button(surface, self.restart_button_rect, "New Game")
+            by += button_height + section_gap
+
+            by = self._section_label(surface, "Mode", bx, by)
+            self.vs_ai_button_rect = pygame.Rect(bx, by, button_width, button_height)
+            self.vs_human_button_rect = pygame.Rect(bx + button_width + spacing, by, button_width, button_height)
+            self._draw_button(surface, self.vs_ai_button_rect, "vs AI", active=controller.vs_ai, disabled=False)
+            self._draw_button(surface, self.vs_human_button_rect, "vs Human", active=not controller.vs_ai, disabled=False)
+            by += button_height + section_gap
+
+            if controller.vs_ai:
+                by = self._section_label(surface, "Play as", bx, by)
+                triple_width = (row_width - spacing * 2) // 3
+
+                self.play_white_button_rect = pygame.Rect(bx, by, triple_width, button_height)
+                self.play_black_button_rect = pygame.Rect(bx + triple_width + spacing, by, triple_width, button_height)
+                self.play_random_button_rect = pygame.Rect(
+                    bx + (triple_width + spacing) * 2, by, triple_width, button_height
+                )
+
+                self._draw_color_button(surface, self.play_white_button_rect, "white",
+                                         active=controller.player_color_choice == "White", disabled=False)
+                self._draw_color_button(surface, self.play_black_button_rect, "black",
+                                         active=controller.player_color_choice == "Black", disabled=False)
+                self._draw_random_button(surface, self.play_random_button_rect,
+                                          active=controller.player_color_choice == "Random", disabled=False)
+                by += button_height + section_gap
+
+                by = self._section_label(surface, "Difficulty", bx, by)
+                difficulty_names = list(DIFFICULTY_PRESETS.keys())
+                self.difficulty_button_rects = self._draw_segmented_row(
+                    surface, bx, by, row_width, button_height, spacing,
+                    difficulty_names, controller.difficulty, disabled=False
+                )
+                by += button_height + section_gap
+            else:
+                self.difficulty_button_rects = {}
+                self.play_white_button_rect = None
+                self.play_black_button_rect = None
+                self.play_random_button_rect = None
+
+            by = self._section_label(surface, "Actions", bx, by)
+            self.forfeit_button_rect = pygame.Rect(bx, by, row_width, button_height)
+            self._draw_forfeit_button(surface, self.forfeit_button_rect, disabled=True)
+
+            return card_rect.bottom
 
     def _draw_segmented_row(self, surface, bx, by, row_width, button_height, spacing, options, active_value, disabled=False):
         count = len(options)
@@ -401,16 +442,40 @@ class UIPanel:
 
         heading = self._text_font.render("Move History", True, settings.COLOR_PANEL_HEADING)
         surface.blit(heading, (inner_x, inner_y))
-        inner_y += 28
+        inner_y += 32
 
         line_height = settings.FONT_SIZE_PANEL_TEXT + 6
-        max_inner_y = card_rect.bottom - 12
+        available_height = card_rect.bottom - 12 - inner_y
+        max_visible_lines = max(1, available_height // line_height)
 
-        for move_number, white_san, black_san in controller.move_history_pairs():
-            if inner_y > max_inner_y:
-                break
+        pairs = controller.move_history_pairs()
+        total_lines = len(pairs)
+
+        if total_lines > self._last_move_count:
+            self._scroll_offset = max(0, total_lines - max_visible_lines)
+        self._last_move_count = total_lines
+
+        max_scroll = max(0, total_lines - max_visible_lines)
+        self._scroll_offset = max(0, min(self._scroll_offset, max_scroll))
+
+        visible_pairs = pairs[self._scroll_offset : self._scroll_offset + max_visible_lines]
+
+        cur_y = inner_y
+        for move_number, white_san, black_san in visible_pairs:
             black_part = black_san if black_san else ""
-            line = f"{move_number}. {white_san}  {black_part}"
+            line = f"{move_number}. {white_san}   {black_part}"
             line_surface = self._text_font.render(line, True, settings.COLOR_PANEL_TEXT)
-            surface.blit(line_surface, (inner_x, inner_y))
-            inner_y += line_height
+            surface.blit(line_surface, (inner_x, cur_y))
+            cur_y += line_height
+
+        if total_lines > max_visible_lines:
+            scrollbar_track_rect = pygame.Rect(
+                card_rect.right - 10, inner_y, 4, available_height
+            )
+            pygame.draw.rect(surface, (50, 50, 50), scrollbar_track_rect, border_radius=2)
+
+            thumb_height = max(16, int(available_height * (max_visible_lines / total_lines)))
+            scroll_ratio = self._scroll_offset / max_scroll if max_scroll > 0 else 0
+            thumb_y = inner_y + int((available_height - thumb_height) * scroll_ratio)
+            thumb_rect = pygame.Rect(card_rect.right - 10, thumb_y, 4, thumb_height)
+            pygame.draw.rect(surface, (140, 140, 140), thumb_rect, border_radius=2)

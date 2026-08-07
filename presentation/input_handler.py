@@ -34,6 +34,17 @@ class InputHandler:
             if move.from_square == self._selected_square
         ]
 
+    def legal_capture_squares(self):
+        """Returns to_squares that are en passant captures (land on empty square)."""
+        if self._selected_square is None:
+            return set()
+        board = self._game_state.get_board()
+        return {
+            move.to_square
+            for move in self._game_state.get_legal_moves()
+            if move.from_square == self._selected_square and board.is_en_passant(move)
+        }
+
     def handle_click(self, pixel_x, pixel_y):
         clicked_square = BoardRenderer.pixel_to_square(pixel_x, pixel_y, self._flipped)
         if clicked_square is None:

@@ -39,8 +39,15 @@ class GameScreen:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self._running = False
-            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                self._handle_click(event.pos)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    self._handle_click(event.pos)
+                elif event.button == 4:
+                    self._ui_panel.handle_scroll(1)
+                elif event.button == 5:
+                    self._ui_panel.handle_scroll(-1)
+            elif event.type == pygame.MOUSEWHEEL:
+                self._ui_panel.handle_scroll(event.y)
 
     def _handle_click(self, pos):
         x, y = pos

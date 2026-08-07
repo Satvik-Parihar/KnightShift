@@ -57,11 +57,18 @@ class BoardRenderer:
     def draw_board(self, surface, game_state, selected_square=None,
                     legal_move_targets=None, last_move=None, flipped=False):
         legal_move_targets = legal_move_targets or []
+        board = game_state.get_board()
+        capture_targets = {
+            sq for sq in legal_move_targets if board.piece_at(sq) is not None
+        }
+        # Also mark en passant landing squares as captures
+        if board.ep_square is not None and board.ep_square in legal_move_targets:
+            capture_targets.add(board.ep_square)
         self._draw_squares(surface, flipped)
         self._draw_last_move_highlight(surface, last_move, flipped)
         self._draw_check_highlight(surface, game_state, flipped)
         self._draw_selected_highlight(surface, selected_square, flipped)
-        self._draw_legal_move_markers(surface, legal_move_targets, flipped)
+        self._draw_legal_move_markers(surface, legal_move_targets, capture_targets, flipped)
         self._draw_pieces(surface, game_state, flipped)
         self._draw_board_border(surface)
         self._draw_coordinates(surface, flipped)
@@ -132,17 +139,29 @@ class BoardRenderer:
         highlight.fill((*settings.COLOR_HIGHLIGHT_SELECTED, 190))
         surface.blit(highlight, (x, y))
 
-    def _draw_legal_move_markers(self, surface, legal_move_targets, flipped):
-        radius = settings.SQUARE_SIZE // 7
+    def _draw_legal_move_markers(self, surface, legal_move_targets, capture_targets, flipped):
+        dot_radius = settings.SQUARE_SIZE // 7
+        ring_outer = settings.SQUARE_SIZE // 2 - 3
+        ring_inner = ring_outer - settings.SQUARE_SIZE // 8
+        dot_color = (0, 0, 0, 160)
+        ring_color = (0, 0, 0, 160)
+
         for square in legal_move_targets:
             x, y = self.square_to_pixel(square, flipped)
             marker = pygame.Surface((settings.SQUARE_SIZE, settings.SQUARE_SIZE), pygame.SRCALPHA)
-            center_x = settings.SQUARE_SIZE // 2
-            center_y = settings.SQUARE_SIZE // 2
+            cx = settings.SQUARE_SIZE // 2
+            cy = settings.SQUARE_SIZE // 2
 
-            fill_color = (40, 40, 40, 90)
-            pygame.gfxdraw.filled_circle(marker, center_x, center_y, radius, fill_color)
-            pygame.gfxdraw.aacircle(marker, center_x, center_y, radius, fill_color)
+            if square in capture_targets:
+                # Draw a hollow ring over capture squares
+                for r in range(ring_inner, ring_outer + 1):
+                    pygame.gfxdraw.aacircle(marker, cx, cy, r, ring_color)
+                pygame.gfxdraw.filled_circle(marker, cx, cy, ring_outer, ring_color)
+                pygame.gfxdraw.filled_circle(marker, cx, cy, ring_inner, (0, 0, 0, 0))
+            else:
+                # Draw a filled dot for empty target squares
+                pygame.gfxdraw.filled_circle(marker, cx, cy, dot_radius, dot_color)
+                pygame.gfxdraw.aacircle(marker, cx, cy, dot_radius, dot_color)
 
             surface.blit(marker, (x, y))
 
