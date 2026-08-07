@@ -101,6 +101,7 @@ class GameScreen:
             legal_move_targets=self._controller.legal_move_targets(),
             last_move=self._controller.last_move,
             flipped=self._controller.board_flipped,
+            pending_promotion=self._controller.pending_promotion,
         )
 
         self._ui_panel.draw(self._window, self._controller)

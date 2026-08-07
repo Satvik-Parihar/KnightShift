@@ -248,6 +248,12 @@ class GameController:
     def selected_square(self):
         return self._input_handler.selected_square
 
+    @property
+    def pending_promotion(self):
+        if self._input_handler is None:
+            return None
+        return self._input_handler.pending_promotion
+
     def legal_move_targets(self):
         return self._input_handler.legal_move_targets()
 

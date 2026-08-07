@@ -82,6 +82,31 @@ class TestRulesCorrectness(unittest.TestCase):
         gs.make_move(prom_move)
         self.assertEqual(gs._board.piece_at(chess.A8).symbol(), "Q")
 
+    def test_input_handler_promotion_choices(self):
+        from presentation.input_handler import InputHandler
+        from presentation.board_renderer import BoardRenderer
+
+        gs = GameState()
+        gs._board = chess.Board("8/P7/8/8/8/8/8/4K3 w - - 0 1")
+        ih = InputHandler(gs)
+
+        # Select pawn on a7
+        ih.handle_click(*BoardRenderer.square_to_pixel(chess.A7))
+        self.assertEqual(ih.selected_square, chess.A7)
+
+        # Click target square a8 -> triggers pending promotion
+        ih.handle_click(*BoardRenderer.square_to_pixel(chess.A8))
+        self.assertIsNotNone(ih.pending_promotion)
+
+        # Click Knight option button
+        rects = BoardRenderer.get_promotion_option_rects()
+        knight_rect = rects[chess.KNIGHT]
+        ih.handle_click(knight_rect.centerx, knight_rect.centery)
+
+        # Verified promoted piece on a8 is Knight
+        self.assertIsNone(ih.pending_promotion)
+        self.assertEqual(gs._board.piece_at(chess.A8).symbol(), "N")
+
     def test_check_checkmate_stalemate_detection(self):
         # Scholar's mate position before final move
         gs = GameState()
