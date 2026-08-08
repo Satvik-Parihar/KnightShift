@@ -107,6 +107,22 @@ class TestRulesCorrectness(unittest.TestCase):
         self.assertIsNone(ih.pending_promotion)
         self.assertEqual(gs._board.piece_at(chess.A8).symbol(), "N")
 
+    def test_board_renderer_promotion_overlay_rendering(self):
+        import pygame
+        pygame.init()
+        from presentation.board_renderer import BoardRenderer
+
+        renderer = BoardRenderer()
+        surface = pygame.Surface((settings.BOARD_PIXELS, settings.BOARD_PIXELS))
+
+        # Test White promotion overlay rendering
+        pending_white = {"turn": chess.WHITE}
+        renderer._draw_promotion_overlay(surface, pending_white)
+
+        # Test Black promotion overlay rendering
+        pending_black = {"turn": chess.BLACK}
+        renderer._draw_promotion_overlay(surface, pending_black)
+
     def test_check_checkmate_stalemate_detection(self):
         # Scholar's mate position before final move
         gs = GameState()

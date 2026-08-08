@@ -22,7 +22,9 @@ class BoardRenderer:
         for symbol, file_name in PIECE_FILE_NAMES.items():
             path = os.path.join(settings.PIECES_ASSET_PATH, f"{file_name}.png")
             if os.path.exists(path):
-                raw = pygame.image.load(path).convert_alpha()
+                raw = pygame.image.load(path)
+                if pygame.display.get_surface() is not None:
+                    raw = raw.convert_alpha()
                 images[symbol] = pygame.transform.smoothscale(raw, (target_size, target_size))
         return images
 
@@ -55,14 +57,20 @@ class BoardRenderer:
         return chess.square(file_index, rank_index)
 
     PROMOTION_PIECES = [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT]
+    PIECE_NAMES = {
+        chess.QUEEN: "Queen",
+        chess.ROOK: "Rook",
+        chess.BISHOP: "Bishop",
+        chess.KNIGHT: "Knight",
+    }
 
     @staticmethod
     def get_promotion_option_rects():
-        card_w, card_h = 380, 130
+        card_w, card_h = 400, 140
         modal_left = (settings.BOARD_PIXELS - card_w) // 2
         modal_top = (settings.BOARD_PIXELS - card_h) // 2
 
-        btn_w, btn_h = 72, 72
+        btn_w, btn_h = 78, 80
         spacing = 12
         total_w = 4 * btn_w + 3 * spacing
         start_x = modal_left + (card_w - total_w) // 2
@@ -98,7 +106,7 @@ class BoardRenderer:
             self._draw_promotion_overlay(surface, pending_promotion)
 
     def _draw_promotion_overlay(self, surface, pending_promotion):
-        card_w, card_h = 380, 130
+        card_w, card_h = 400, 140
         modal_left = (settings.BOARD_PIXELS - card_w) // 2
         modal_top = (settings.BOARD_PIXELS - card_h) // 2
         modal_rect = pygame.Rect(modal_left, modal_top, card_w, card_h)
@@ -117,14 +125,9 @@ class BoardRenderer:
 
         mouse_pos = pygame.mouse.get_pos()
         turn_color = pending_promotion.get("turn", chess.WHITE)
-        color_prefix = "w" if turn_color == chess.WHITE else "b"
 
-        symbol_map = {
-            chess.QUEEN: f"{color_prefix}Q",
-            chess.ROOK: f"{color_prefix}R",
-            chess.BISHOP: f"{color_prefix}B",
-            chess.KNIGHT: f"{color_prefix}N",
-        }
+        label_font = pygame.font.SysFont(settings.FONT_NAME, 12, bold=True)
+        fallback_font = pygame.font.SysFont(settings.FONT_NAME, 24, bold=True)
 
         option_rects = self.get_promotion_option_rects()
         for piece_type, rect in option_rects.items():
@@ -135,11 +138,22 @@ class BoardRenderer:
             pygame.draw.rect(surface, bg, rect, border_radius=8)
             pygame.draw.rect(surface, border_color, rect, width=2, border_radius=8)
 
-            sym = symbol_map[piece_type]
-            piece_img = self._piece_images.get(sym)
+            piece_symbol = chess.Piece(piece_type, turn_color).symbol()
+            piece_img = self._piece_images.get(piece_symbol)
+
             if piece_img is not None:
-                img_rect = piece_img.get_rect(center=rect.center)
-                surface.blit(piece_img, img_rect)
+                scaled_img = pygame.transform.smoothscale(piece_img, (48, 48))
+                img_rect = scaled_img.get_rect(center=(rect.centerx, rect.top + 30))
+                surface.blit(scaled_img, img_rect)
+            else:
+                text_sf = fallback_font.render(piece_symbol.upper(), True, (240, 240, 240))
+                text_rect = text_sf.get_rect(center=(rect.centerx, rect.top + 30))
+                surface.blit(text_sf, text_rect)
+
+            name_str = self.PIECE_NAMES.get(piece_type, "")
+            name_sf = label_font.render(name_str, True, (255, 255, 255) if is_hover else (200, 200, 200))
+            name_rect = name_sf.get_rect(center=(rect.centerx, rect.bottom - 13))
+            surface.blit(name_sf, name_rect)
 
     def _draw_squares(self, surface, flipped):
         for rank_index in range(8):
